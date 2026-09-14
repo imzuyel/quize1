@@ -1,0 +1,3 @@
+import Link from "next/link";
+export const metadata={title:"Privacy Policy",description:"Privacy and data handling policy."};
+export default function Privacy(){return <main className="min-h-screen bg-[var(--pg-mist)] px-4 py-8"><div className="mx-auto max-w-3xl space-y-5"><Link href="/" className="text-sm font-bold text-[var(--pg-teal)]">← হোম</Link><section className="pg-surface p-6"><h1 className="text-3xl font-black">🔒 Privacy Policy</h1><p className="mt-4 text-sm leading-7 text-slate-600">প্ল্যাটফর্মটি কুইজ পরিচালনা, অংশগ্রহণ, ফলাফল ও নিরাপত্তার জন্য প্রয়োজনীয় তথ্য ব্যবহার করে। সংবেদনশীল তথ্য অপ্রয়োজনে সংগ্রহ করা উচিত নয়। Admin access অনুযায়ী ডেটা দেখা ও পরিচালনা করা হয়।</p></section></div></main>}

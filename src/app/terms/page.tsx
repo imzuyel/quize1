@@ -1,0 +1,3 @@
+import Link from "next/link";
+export const metadata={title:"Terms & Conditions",description:"Platform terms and conditions."};
+export default function Terms(){return <main className="min-h-screen bg-[var(--pg-mist)] px-4 py-8"><div className="mx-auto max-w-3xl space-y-5"><Link href="/" className="text-sm font-bold text-[var(--pg-teal)]">← হোম</Link><section className="pg-surface p-6"><h1 className="text-3xl font-black">📋 Terms & Conditions</h1><p className="mt-4 text-sm leading-7 text-slate-600">এই প্ল্যাটফর্ম শিক্ষা ও কুইজ পরিচালনার উদ্দেশ্যে ব্যবহার করা হবে। অনুমতি ছাড়া অন্যের account/session ব্যবহার, অপব্যবহার বা সিস্টেমে ক্ষতিকর কার্যক্রম চালানো যাবে না। Institution/Admin প্রয়োজন অনুযায়ী access সীমিত বা বাতিল করতে পারে।</p></section></div></main>}
