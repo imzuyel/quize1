@@ -27,8 +27,25 @@ import { clearScheduled, publish, rateLimit, scheduleFor } from "@/lib/realtime"
 import { getFeatures } from "@/lib/features";
 import { and, eq, sql } from "drizzle-orm";
 import { generateNickname } from "@/lib/nickname";
+import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
+
+export async function deleteSessionRecord(sessionId: number, pin: string, userId: number, quizId: number) {
+  clearScheduled(`reveal:${pin}`);
+  publish(`session:${pin}`, "deleted", { pin, deleted: true, message: "এই লাইভ সেশনটি ডিলিট করা হয়েছে" });
+
+  await db.delete(playerAnswers).where(eq(playerAnswers.sessionId, sessionId));
+  await db.delete(sessionReactions).where(eq(sessionReactions.sessionId, sessionId));
+  await db.delete(sessionPlayers).where(eq(sessionPlayers.sessionId, sessionId));
+  await db.delete(sessionTeams).where(eq(sessionTeams.sessionId, sessionId));
+  await db.delete(quizResults).where(eq(quizResults.sessionId, sessionId));
+  await db.delete(quizSessions).where(eq(quizSessions.id, sessionId));
+
+  if (userId) {
+    await audit(userId, "session.delete", "quiz_sessions", sessionId, { pin, quizId });
+  }
+}
 
 async function broadcast(pin: string, event = "update") {
   const snap = await buildSnapshot(pin);
@@ -95,10 +112,15 @@ export async function POST(req: Request) {
       const quizId = Number(body.quizId);
       const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, quizId)).limit(1))[0];
       if (!quiz) return fail("কুইজ পাওয়া যায়নি", 404);
-      if (!isAdmin(user.role) && quiz.createdBy !== user.id) return fail("এই কুইজের লাইভ সেশন তৈরির অনুমতি নেই", 403);
+      if (!isAdmin(user.role) && quiz.createdBy !== user.id && quiz.status !== "published") {
+        return fail("এই কুইজের লাইভ সেশন তৈরির অনুমতি নেই", 403);
+      }
       const list = await loadQuizQuestions(quizId);
       if (!list.length) return fail("লাইভ শুরু করার আগে কুইজে অন্তত ১টি প্রশ্ন যোগ করুন");
       const settings = mergeSettings(quiz.settings);
+      if (body.plateStyle) {
+        settings.plateStyle = String(body.plateStyle);
+      }
       let newPin = generatePin();
       for (let i = 0; i < 12; i++) {
         const clash = await getSessionByPin(newPin);
@@ -426,6 +448,12 @@ export async function POST(req: Request) {
         case "skip":
           await startQuestion(Math.min(list.length - 1, session.currentIndex + 1));
           break;
+        case "jump":
+        case "goToQuestion": {
+          const targetIndex = Math.max(0, Math.min(list.length - 1, Number(body.index ?? body.questionIndex ?? 0)));
+          await startQuestion(targetIndex);
+          break;
+        }
         case "lock":
           clearScheduled(`reveal:${pin}`);
           await db
@@ -510,10 +538,22 @@ export async function POST(req: Request) {
           }
           break;
         }
+        case "setPlateStyle": {
+          const newPlate = String(body.plateStyle ?? "auto");
+          const updatedSettings = { ...settings, plateStyle: newPlate };
+          await db
+            .update(quizSessions)
+            .set({ settings: updatedSettings as object, version: session.version + 1 })
+            .where(eq(quizSessions.id, session.id));
+          break;
+        }
         case "end":
           clearScheduled(`reveal:${pin}`);
           await finishSession(session.id, pin);
           break;
+        case "delete":
+          await deleteSessionRecord(session.id, canonicalPin, user?.id ?? 0, session.quizId);
+          return ok({ ok: true, deleted: true, pin: canonicalPin });
         default:
           return fail("Unknown command");
       }
@@ -521,7 +561,47 @@ export async function POST(req: Request) {
       return ok(snap ?? { ok: true });
     }
 
+    /* ------------------------------ delete session ------------------------------ */
+    if (action === "delete") {
+      if (!canControlSession) return fail("এই লাইভ সেশন মুছে ফেলার অনুমতি নেই", 403);
+      await deleteSessionRecord(session.id, canonicalPin, user?.id ?? 0, session.quizId);
+      return ok({ ok: true, deleted: true, pin: canonicalPin });
+    }
+
     return fail("Unknown action");
+  });
+}
+
+export async function DELETE(req: Request) {
+  return guard(async () => {
+    const user = await getCurrentUser();
+    if (!user || !isStaff(user.role)) return fail("Forbidden", 403);
+    const url = new URL(req.url);
+    let pin = url.searchParams.get("pin") || "";
+    const idParam = url.searchParams.get("id");
+    let session = pin ? await getSessionByPin(pin) : null;
+    if (!session && idParam) {
+      session = (await db.select().from(quizSessions).where(eq(quizSessions.id, Number(idParam))).limit(1))[0];
+    }
+    if (!session) {
+      try {
+        const body = (await req.json()) as Record<string, unknown>;
+        pin = String(body.pin ?? "");
+        if (pin) session = await getSessionByPin(pin);
+        if (!session && body.id) {
+          session = (await db.select().from(quizSessions).where(eq(quizSessions.id, Number(body.id))).limit(1))[0];
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!session) return fail("সেশন পাওয়া যায়নি", 404);
+    const sessionQuiz = (await db.select({ id: quizzes.id, createdBy: quizzes.createdBy }).from(quizzes).where(eq(quizzes.id, session.quizId)).limit(1))[0];
+    const canControlSession = Boolean(isAdmin(user.role) || session.hostId === user.id || sessionQuiz?.createdBy === user.id);
+    if (!canControlSession) return fail("এই সেশন মুছে ফেলার অনুমতি নেই", 403);
+
+    await deleteSessionRecord(session.id, session.pin, user.id, session.quizId);
+    return ok({ ok: true, deleted: true, pin: session.pin });
   });
 }
 

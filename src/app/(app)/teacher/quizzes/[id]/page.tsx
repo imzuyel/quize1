@@ -22,6 +22,7 @@ import { mergeTemplate } from "@/lib/theme";
 import { parseQuestions } from "@/lib/parse-questions";
 import { DEFAULT_SETTINGS, EXAM_SETTINGS, formatDuration, type QuizSettings } from "@/lib/quiz-settings";
 import { QuestionTypeEditor, EMPTY_MANUAL_QUESTION, type ManualQuestionDraft } from "@/components/question-type-editor";
+import { QuizPlate, QuizPlateSelector } from "@/components/quiz-plate";
 
 type Q = {
   id: number;
@@ -73,6 +74,8 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const [manual, setManual] = useState<ManualQuestionDraft>({ ...EMPTY_MANUAL_QUESTION });
   const [showReveal, setShowReveal] = useState(false);
   const [revealKey, setRevealKey] = useState(0);
+  const [publishing, setPublishing] = useState(false);
+  const [liveStarting, setLiveStarting] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/quizzes?id=${quizId}`);
@@ -271,30 +274,54 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         <Badge tone="blue">{questions.length} প্রশ্ন</Badge>
         <Badge tone="gold">{totalMarks} মার্কস</Badge>
         <Badge tone="teal">⏱ {formatDuration(totalTime + (s.examBufferSeconds ?? 0))}</Badge>
-        <Button size="sm" variant="outline" onClick={() => post({ op: "publish", id: quizId }).then(load)}>
-          প্রকাশ করুন
+        <Button
+          size="sm"
+          variant="outline"
+          loading={publishing}
+          onClick={async () => {
+            setPublishing(true);
+            try {
+              const res = await post({ op: "publish", id: quizId });
+              if (res) {
+                push("কুইজ প্রকাশিত হয়েছে! এবার শিক্ষার্থীরা অংশ নিতে পারবে।", "success");
+                load();
+              }
+            } finally {
+              setPublishing(false);
+            }
+          }}
+        >
+          {quiz.status === "published" ? "পুনরায় প্রকাশ" : "প্রকাশ করুন"}
         </Button>
-        {quiz.mode === "live" ? (
-          <Button
-            size="sm"
-            onClick={async () => {
+        <Button
+          size="sm"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          loading={liveStarting}
+          onClick={async () => {
+            setLiveStarting(true);
+            try {
               const res = await fetch("/api/live", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ action: "create", quizId }),
               });
               const data = await res.json();
-              if (res.ok) router.push(`/host/${data.pin}`);
-              else push(data.error, "error");
-            }}
-          >
-            📡 লাইভ শুরু
-          </Button>
-        ) : (
-          <Link href={`/student/quizzes`}>
-            <Button size="sm">শিক্ষার্থী ভিউ</Button>
-          </Link>
-        )}
+              if (res.ok) {
+                push(`পিন ${data.pin} প্রস্তুত! লাইভ কন্ট্রোল রুমে যাচ্ছেন...`, "success");
+                router.push(`/host/${data.pin}`);
+              } else {
+                push(data.error ?? "ব্যর্থ", "error");
+              }
+            } finally {
+              setLiveStarting(false);
+            }
+          }}
+        >
+          📡 লাইভ শুরু
+        </Button>
+        <Link href={`/student/quizzes`}>
+          <Button size="sm" variant="ghost">শিক্ষার্থী ভিউ</Button>
+        </Link>
       </div>
 
       <Card className="overflow-hidden bg-gradient-to-r from-[var(--pg-deep)] to-[var(--pg-teal)] text-white">
@@ -494,19 +521,21 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                     </span>
                   )}
                 </div>
-                <ThemedCard config={theme} animate animKey={current.id} className="p-4">
-                  <p className="text-lg font-bold">{current.text}</p>
-                </ThemedCard>
-                <div className="mt-3" key={revealKey}>
-                  <ThemedAnswers
-                    config={theme}
+                <div className="mt-2" key={revealKey}>
+                  <QuizPlate
+                    plateStyle={s.plateStyle || "auto"}
+                    questionIndex={active}
+                    totalQuestions={questions.length}
+                    questionText={current.text}
                     options={current.options}
                     type={current.type}
                     selected={showReveal ? [1] : []}
                     reveal={showReveal}
                     correct={current.correct}
+                    hint={current.hint}
+                    explanation={current.explanation}
+                    mode="preview"
                     disabled
-                    onSelect={() => {}}
                   />
                 </div>
                 {showReveal ? (
@@ -687,6 +716,14 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   🎨 টেমপ্লেট স্টুডিওতে নতুন থিম বানান →
                 </Link>
               </div>
+
+              <div className="pt-3 border-t border-slate-200">
+                <QuizPlateSelector
+                  value={s.plateStyle || "auto"}
+                  onChange={(val) => saveSettings({ ...s, plateStyle: val })}
+                />
+              </div>
+
               <Toggle checked={s.leaderboard} onChange={(v) => saveSettings({ ...s, leaderboard: v })} label="লিডারবোর্ড" />
               <Toggle checked={s.cinematicIntro} onChange={(v) => saveSettings({ ...s, cinematicIntro: v })} label="সিনেমাটিক ইন্ট্রো" />
               <Toggle checked={s.feedbackEnabled} onChange={(v) => saveSettings({ ...s, feedbackEnabled: v })} label="ফিডব্যাক নিন" />

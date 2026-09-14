@@ -77,10 +77,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const l = (localStorage.getItem("pg_locale") as Locale) || "bn";
-    setLocaleState(l);
-    const m = (localStorage.getItem("pg_motion") as "low") || "medium";
-    setMotionState(m);
-    setHC(localStorage.getItem("pg_hc") === "1");
+    const m = (localStorage.getItem("pg_motion") as "low" | "medium" | "high" | null) || "medium";
+    const hc = localStorage.getItem("pg_hc") === "1";
     // auto-reduce motion on low-end devices / slow networks
     const nav = navigator as Navigator & {
       deviceMemory?: number;
@@ -91,7 +89,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       nav.hardwareConcurrency <= 2 ||
       nav.connection?.saveData === true ||
       ["slow-2g", "2g"].includes(nav.connection?.effectiveType ?? "");
-    if (slow && !localStorage.getItem("pg_motion")) setMotionState("low");
+    const finalMotion: "low" | "medium" | "high" = slow && !localStorage.getItem("pg_motion") ? "low" : m;
+
+    queueMicrotask(() => {
+      if (l !== "bn") setLocaleState(l);
+      if (finalMotion !== "medium") setMotionState(finalMotion);
+      if (hc) setHC(true);
+    });
   }, []);
 
   useEffect(() => {

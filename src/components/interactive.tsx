@@ -375,10 +375,15 @@ function Matching({
     const [l, r] = p.split("→").map((x) => x.trim());
     return { left: l ?? p, right: r ?? p };
   });
-  const [rights, setRights] = useState(() => parsed.map((p, i) => ({ i, text: p.right })));
-  useEffect(() => {
+  const pairsKey = pairs.join("\u0001");
+  const [rights, setRights] = useState(() =>
+    [...parsed.map((p, i) => ({ i, text: p.right }))].sort(() => Math.random() - 0.5)
+  );
+  const [prevPairsKey, setPrevPairsKey] = useState(pairsKey);
+  if (pairsKey !== prevPairsKey) {
+    setPrevPairsKey(pairsKey);
     setRights([...parsed.map((p, i) => ({ i, text: p.right }))].sort(() => Math.random() - 0.5));
-  }, [pairs.join("\u0001")]);
+  }
   const [active, setActive] = useState<number | null>(null);
 
   const pick = (leftIdx: number, rightIdx: number) => {
@@ -461,9 +466,11 @@ function OrderList({
   onSubmit?: () => void;
 }) {
   const [order, setOrder] = useState<number[]>(value);
-  useEffect(() => {
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     if (value.length) setOrder(value);
-  }, [value]);
+  }
 
   const move = (idx: number, dir: -1 | 1) => {
     const target = idx + dir;

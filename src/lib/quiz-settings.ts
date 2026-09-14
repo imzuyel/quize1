@@ -32,6 +32,7 @@ export type QuizSettings = {
   feedbackEnabled: boolean;
   feedbackRequired: boolean;
   templateId?: number | null;
+  plateStyle?: string | null;
 };
 
 export const DEFAULT_SETTINGS: QuizSettings = {
@@ -72,6 +73,7 @@ export const DEFAULT_SETTINGS: QuizSettings = {
   feedbackEnabled: true,
   feedbackRequired: false,
   templateId: null,
+  plateStyle: "auto",
 };
 
 export const EXAM_SETTINGS: QuizSettings = {
@@ -98,6 +100,7 @@ export const EXAM_SETTINGS: QuizSettings = {
   randomOptions: true,
   // Exams also follow each question's own timer; total time is the sum.
   timerMode: "per_question",
+  plateStyle: "auto",
 };
 
 export function mergeSettings(raw: unknown): QuizSettings {
@@ -119,6 +122,22 @@ export type LiveQuestion = {
   explanation: string | null;
   correct: (string | number)[];
   settings?: Record<string, unknown>;
+};
+
+export type LivePaletteItem = {
+  index: number;
+  id: number;
+  text: string;
+  type: string;
+  difficulty: string;
+  marks: number;
+  timer: number;
+  answeredCount: number;
+  correctCount: number;
+  accuracy: number | null;
+  avgResponseMs: number | null;
+  isStruggling: boolean;
+  status: "upcoming" | "active" | "locked" | "revealed" | "completed";
 };
 
 export type Snapshot = {
@@ -159,7 +178,12 @@ export type Snapshot = {
   /** Player IDs who have submitted — safe to show before the reveal. */
   answeredBy: number[];
   /** Each player's outcome on the current question — drives reveal animations. */
-  outcomes: Record<number, { correct: boolean; points: number; answer: (string | number)[] }>;
+  outcomes: Record<
+    number,
+    { correct: boolean; points: number; answer: (string | number)[]; responseMs?: number }
+  >;
+  /** Real-time Question Palette summary for host/teacher monitoring */
+  palette?: LivePaletteItem[];
 };
 
 export function isAnswerCorrect(q: LiveQuestion, answer: unknown): boolean {
@@ -218,27 +242,35 @@ export function computePoints(opts: {
   const { settings, question, correct, responseMs, streak } = opts;
   if (!correct || ["poll", "word_cloud", "open_ended"].includes(question.type)) return 0;
   const timerMs = Math.max(1, question.timer * 1000);
+  // Time remaining ratio: 1.0 = instant response, 0.0 = last millisecond
   const ratio = Math.max(0, Math.min(1, 1 - responseMs / timerMs));
-  let points = 0;
-  switch (settings.scoring) {
-    case "standard":
-      points = settings.basePoints;
-      break;
-    case "speed":
-      points = settings.basePoints + Math.round(settings.speedBonus * ratio);
-      break;
-    case "difficulty":
-      points =
-        settings.basePoints *
-        (question.difficulty === "hard" ? 2 : question.difficulty === "medium" ? 1.5 : 1);
-      break;
-    default:
-      points = settings.basePoints * question.marks;
+
+  // Determine base points pool according to scoring mode & question marks
+  let maxPoints = (settings.basePoints || 1000) * (question.marks || 1);
+  if (settings.scoring === "difficulty") {
+    maxPoints *=
+      question.difficulty === "hard" ? 2 : question.difficulty === "medium" ? 1.5 : 1;
   }
+
+  // Quicker response = more points! (যত তাড়াতাড়ি, তত বেশি পয়েন্ট)
+  // 50% guaranteed floor for getting it right, 50% scaled strictly by speed
+  const basePortion = Math.round(maxPoints * 0.5);
+  const speedPortion = Math.round(maxPoints * 0.5 * ratio);
+
+  // Extra speed bonus pool scaled by remaining time ratio
+  const extraSpeedPool = Math.max(settings.speedBonus || 500, Math.round(maxPoints * 0.5));
+  const speedBonusPoints = Math.round(extraSpeedPool * ratio);
+
+  // Instant lightning bonus for ultra-fast reflex answers (within first 2.5s / 5s)
+  const lightningBonus =
+    responseMs <= 2500 && ratio >= 0.8 ? 150 : responseMs <= 5000 && ratio >= 0.6 ? 75 : 0;
+
+  let points = basePortion + speedPortion + speedBonusPoints + lightningBonus;
+
   if (settings.streakBonus && streak > 0 && streak % settings.streakStep === 0)
     points = Math.round(points * 1.25);
   if (opts.doublePoints) points *= 2;
-  return Math.round(points);
+  return Math.max(10, Math.round(points));
 }
 
 /**

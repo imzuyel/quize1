@@ -9,13 +9,18 @@ export function useLiveSession(pin: string) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [status, setStatus] = useState<LiveStatus>("connecting");
   const [reactions, setReactions] = useState<{ id: number; emoji: string }[]>([]);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [deletedMessage, setDeletedMessage] = useState("");
   const esRef = useRef<EventSource | null>(null);
   const retryRef = useRef(0);
   const counter = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectRef = useRef<() => void>(() => {});
 
   const connect = useCallback(() => {
-    if (!pin) return;
+    if (!pin || isDeleted) return;
     esRef.current?.close();
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     const playerId = typeof window !== "undefined" ? localStorage.getItem(`pg_player_${pin}`) : null;
     const qs = playerId
       ? `?pin=${encodeURIComponent(pin)}&playerId=${encodeURIComponent(playerId)}`
@@ -39,6 +44,17 @@ export function useLiveSession(pin: string) {
     es.addEventListener("score_update", onData);
     es.addEventListener("leaderboard", onData);
     es.addEventListener("complete", onData);
+    es.addEventListener("deleted", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as { message?: string };
+        setIsDeleted(true);
+        setDeletedMessage(data?.message || "এই লাইভ সেশনটি ডিলিট করা হয়েছে");
+        es.close();
+      } catch {
+        setIsDeleted(true);
+        es.close();
+      }
+    });
     es.addEventListener("reaction", (e) => {
       try {
         const data = JSON.parse((e as MessageEvent).data) as { emoji: string };
@@ -51,26 +67,37 @@ export function useLiveSession(pin: string) {
     });
     es.onopen = () => setStatus("connected");
     es.onerror = () => {
+      if (isDeleted) return;
       setStatus("reconnecting");
       es.close();
       retryRef.current += 1;
       const delay = Math.min(8000, 800 * retryRef.current);
-      setTimeout(connect, delay);
+      reconnectTimerRef.current = setTimeout(() => {
+        connectRef.current();
+      }, delay);
     };
-  }, [pin]);
+  }, [pin, isDeleted]);
 
   useEffect(() => {
+    connectRef.current = connect;
     connect();
-    return () => esRef.current?.close();
+    return () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      esRef.current?.close();
+    };
   }, [connect]);
 
   // polling fallback keeps everyone in sync even if SSE is blocked by a proxy
   useEffect(() => {
+    if (isDeleted) return;
     const id = setInterval(async () => {
-      if (status === "connected") return;
+      if (status === "connected" || isDeleted) return;
       try {
         const res = await fetch(`/api/live?pin=${pin}`);
-        if (res.ok) {
+        if (res.status === 404) {
+          setIsDeleted(true);
+          setDeletedMessage("এই লাইভ সেশনটি ডিলিট করা হয়েছে");
+        } else if (res.ok) {
           setSnapshot((await res.json()) as Snapshot);
           setStatus((s) => (s === "connected" ? s : "reconnecting"));
         }
@@ -79,14 +106,20 @@ export function useLiveSession(pin: string) {
       }
     }, 3000);
     return () => clearInterval(id);
-  }, [pin, status]);
+  }, [pin, status, isDeleted]);
 
   const refresh = useCallback(async () => {
+    if (isDeleted) return;
     const res = await fetch(`/api/live?pin=${pin}`);
-    if (res.ok) setSnapshot((await res.json()) as Snapshot);
-  }, [pin]);
+    if (res.status === 404) {
+      setIsDeleted(true);
+      setDeletedMessage("এই লাইভ সেশনটি ডিলিট করা হয়েছে");
+    } else if (res.ok) {
+      setSnapshot((await res.json()) as Snapshot);
+    }
+  }, [pin, isDeleted]);
 
-  return { snapshot, status, reactions, refresh };
+  return { snapshot, status, reactions, refresh, isDeleted, deletedMessage };
 }
 
 export async function liveAction(body: Record<string, unknown>) {

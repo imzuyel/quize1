@@ -21,12 +21,13 @@ export type ShellUser = {
 const NAV: Record<string, { href: string; label: string; labelEn: string; icon: string }[]> = {
   teacher: [
     { href: "/teacher", label: "ড্যাশবোর্ড", labelEn: "Dashboard", icon: "🏠" },
+    { href: "/teacher/quizzes?new=1", label: "➕ নতুন কুইজ তৈরি", labelEn: "+ Create Quiz", icon: "➕" },
+    { href: "/teacher/quizzes", label: "কুইজ তালিকা ও স্টুডিও", labelEn: "Quiz Studio", icon: "📝" },
+    { href: "/teacher/live", label: "লাইভ কুইজ সেশন", labelEn: "Live Sessions", icon: "📡" },
     { href: "/teacher/ai", label: "এআই জেনারেটর", labelEn: "AI Generator", icon: "✨" },
     { href: "/teacher/bank", label: "প্রশ্ন ব্যাংক", labelEn: "Question Bank", icon: "🗃️" },
-    { href: "/teacher/quizzes", label: "কুইজ স্টুডিও", labelEn: "Quiz Studio", icon: "🎛️" },
     { href: "/teacher/templates", label: "টেমপ্লেট স্টুডিও", labelEn: "Templates", icon: "🎨" },
     { href: "/teacher/slides", label: "প্রেজেন্টেশন", labelEn: "Presentations", icon: "🎞️" },
-    { href: "/teacher/live", label: "লাইভ সেশন", labelEn: "Live Sessions", icon: "📡" },
     { href: "/teacher/analytics", label: "অ্যানালিটিক্স ও রিপোর্ট", labelEn: "Analytics", icon: "📈" },
     { href: "/teacher/tournaments", label: "টুর্নামেন্ট ও পাথ", labelEn: "Tournaments", icon: "🏆" },
     { href: "/leaderboard", label: "লিডারবোর্ড", labelEn: "Leaderboard", icon: "🥇" },
@@ -35,6 +36,7 @@ const NAV: Record<string, { href: string; label: string; labelEn: string; icon: 
   ],
   student: [
     { href: "/student", label: "ড্যাশবোর্ড", labelEn: "Dashboard", icon: "🏠" },
+    { href: "/join", label: "🎮 লাইভ কুইজে যোগ দিন", labelEn: "Join Live Quiz", icon: "🎮" },
     { href: "/student/quizzes", label: "কুইজ ও পরীক্ষা", labelEn: "Quizzes", icon: "📝" },
     { href: "/student/practice", label: "অনুশীলন", labelEn: "Practice", icon: "🎯" },
     { href: "/student/results", label: "ফলাফল", labelEn: "Results", icon: "📊" },
@@ -51,6 +53,9 @@ const NAV: Record<string, { href: string; label: string; labelEn: string; icon: 
   ],
   admin: [
     { href: "/admin", label: "ড্যাশবোর্ড", labelEn: "Dashboard", icon: "🏠" },
+    { href: "/teacher/quizzes?new=1", label: "➕ নতুন কুইজ তৈরি", labelEn: "+ Create Quiz", icon: "➕" },
+    { href: "/teacher/quizzes", label: "কুইজ স্টুডিও", labelEn: "Quiz Studio", icon: "📝" },
+    { href: "/teacher/live", label: "লাইভ কুইজ সেশন", labelEn: "Live Sessions", icon: "📡" },
     { href: "/admin/structure", label: "একাডেমিক কাঠামো", labelEn: "Structure", icon: "🏫" },
     { href: "/admin/users", label: "ইউজার ম্যানেজমেন্ট", labelEn: "Users", icon: "👥" },
     { href: "/admin/settings", label: "ব্র্যান্ডিং ও সেটিংস", labelEn: "Global Settings", icon: "🎨" },
@@ -94,15 +99,28 @@ export function AppShell({
   const loadNotifs = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications");
-      if (res.ok) setNotifs(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setNotifs(data);
+      }
     } catch {
       /* offline */
     }
   }, []);
 
   useEffect(() => {
-    if (user) loadNotifs();
-  }, [user, loadNotifs]);
+    if (!user) return;
+    let active = true;
+    fetch("/api/notifications")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (active && Array.isArray(data)) setNotifs(data);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const logout = async () => {
     await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) });
@@ -130,11 +148,21 @@ export function AppShell({
             <span className="hidden text-sm font-extrabold sm:block">{brandName}</span>
           </Link>
           <div className="flex-1" />
+          {user && (roleKey === "teacher" || roleKey === "admin") ? (
+            <Link
+              href="/teacher/quizzes?new=1"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 px-3.5 py-1.5 text-xs font-black text-white shadow-md shadow-teal-700/20 transition hover:-translate-y-0.5 hover:shadow-teal-700/30 active:scale-95 cursor-pointer"
+              id="header-create-quiz-btn"
+            >
+              <span>➕</span>
+              <span>কুইজ তৈরি</span>
+            </Link>
+          ) : null}
           {user ? <CommandPalette role={user.role} /> : null}
           <ThemeToggle />
           <button
             onClick={() => setLocale(locale === "bn" ? "en" : "bn")}
-            className="rounded-lg border border-[var(--pg-line)] px-2.5 py-1.5 text-xs font-bold"
+            className="rounded-lg border border-[var(--pg-line)] px-2.5 py-1.5 text-xs font-bold cursor-pointer"
           >
             {locale === "bn" ? "EN" : "বাং"}
           </button>
@@ -145,7 +173,7 @@ export function AppShell({
                   setNotifOpen(true);
                   loadNotifs();
                 }}
-                className="relative rounded-lg p-2 text-lg"
+                className="relative rounded-lg p-2 text-lg cursor-pointer"
                 aria-label="Notifications"
               >
                 🔔
@@ -157,22 +185,26 @@ export function AppShell({
               </button>
               <div className="hidden text-right sm:block">
                 <p className="text-xs font-bold leading-tight">{user.name}</p>
-                <p className="text-[10px] uppercase text-slate-400">{user.role}</p>
+                <div className="flex items-center justify-end gap-1">
+                  <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200/60">
+                    {user.role}
+                  </span>
+                </div>
               </div>
               <Link
                 href="/settings"
-                className="rounded-lg p-2 text-lg transition hover:bg-slate-100"
+                className="rounded-lg p-2 text-lg transition hover:bg-slate-100 cursor-pointer"
                 aria-label={t("settings")}
                 title={t("settings")}
               >
                 ⚙️
               </Link>
-              <Button size="sm" variant="outline" onClick={logout}>
+              <Button size="sm" variant="outline" onClick={logout} className="cursor-pointer">
                 {t("logout")}
               </Button>
             </>
           ) : (
-            <Link href="/">
+            <Link href="/" className="cursor-pointer">
               <Button size="sm">{t("get_started")}</Button>
             </Link>
           )}
@@ -181,6 +213,46 @@ export function AppShell({
 
       <div className="mx-auto flex max-w-[1400px]">
         <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 overflow-y-auto border-r border-white/70 bg-white/65 p-3 backdrop-blur-xl lg:block pg-scroll">
+          {/* Quick Primary Actions */}
+          {roleKey === "teacher" || roleKey === "admin" ? (
+            <div className="mb-3 space-y-1.5">
+              <Link
+                href="/teacher/quizzes?new=1"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-teal-700/20 transition duration-150 hover:-translate-y-0.5 hover:shadow-teal-700/35 active:scale-98 cursor-pointer"
+                id="sidebar-create-quiz-btn"
+              >
+                <span className="text-base">➕</span>
+                <span>নতুন কুইজ তৈরি</span>
+              </Link>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                <Link
+                  href="/teacher/ai"
+                  className="flex items-center justify-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/80 px-2 py-1.5 font-bold text-indigo-900 transition hover:bg-indigo-100 hover:text-indigo-950 cursor-pointer"
+                >
+                  <span>✨</span>
+                  <span>এআই কুইজ</span>
+                </Link>
+                <Link
+                  href="/teacher/live"
+                  className="flex items-center justify-center gap-1 rounded-lg border border-teal-200/80 bg-teal-50/80 px-2 py-1.5 font-bold text-teal-900 transition hover:bg-teal-100 hover:text-teal-950 cursor-pointer"
+                >
+                  <span>📡</span>
+                  <span>লাইভ হোস্ট</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-3">
+              <Link
+                href="/join"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-orange-500/25 transition duration-150 hover:-translate-y-0.5 hover:shadow-orange-500/35 active:scale-98 cursor-pointer"
+              >
+                <span className="text-base">🎮</span>
+                <span>পিন দিয়ে কুইজে যোগ দিন</span>
+              </Link>
+            </div>
+          )}
+
           <NavList nav={nav} pathname={pathname} locale={locale} />
           <AccessibilityPanel
             motion={motion}
@@ -209,7 +281,34 @@ export function AppShell({
       </footer>
 
       <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title={t("app_name")}>
-        <div onClick={() => setMenuOpen(false)}>
+        <div onClick={() => setMenuOpen(false)} className="space-y-3">
+          {roleKey === "teacher" || roleKey === "admin" ? (
+            <div className="mb-2 space-y-1.5">
+              <Link
+                href="/teacher/quizzes?new=1"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-teal-700/20 active:scale-98 cursor-pointer"
+              >
+                <span className="text-base">➕</span>
+                <span>নতুন কুইজ তৈরি করুন</span>
+              </Link>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                <Link
+                  href="/teacher/ai"
+                  className="flex items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1.5 font-bold text-indigo-900 cursor-pointer"
+                >
+                  <span>✨</span>
+                  <span>এআই কুইজ</span>
+                </Link>
+                <Link
+                  href="/teacher/live"
+                  className="flex items-center justify-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2 py-1.5 font-bold text-teal-900 cursor-pointer"
+                >
+                  <span>📡</span>
+                  <span>লাইভ হোস্ট</span>
+                </Link>
+              </div>
+            </div>
+          ) : null}
           <NavList nav={nav} pathname={pathname} locale={locale} />
         </div>
         <AccessibilityPanel
@@ -275,20 +374,37 @@ function NavList({
   return (
     <nav className="space-y-1">
       {nav.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(item.href + "/");
+        const baseHref = item.href.split("?")[0];
+        const isExact = pathname === baseHref;
+        const isSub =
+          baseHref !== "/teacher" &&
+          baseHref !== "/student" &&
+          baseHref !== "/admin" &&
+          pathname.startsWith(baseHref + "/");
+        const active = isExact || isSub;
+
         return (
           <Link
             key={item.href}
             href={item.href}
             className={cx(
-              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition min-h-[44px]",
+              "group flex items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold transition min-h-[44px] cursor-pointer select-none",
               active
-                ? "bg-gradient-to-r from-[var(--pg-teal)] to-[#7778ec] text-white shadow-lg shadow-indigo-500/20"
-                : "text-slate-600 hover:bg-indigo-50 hover:text-indigo-950",
+                ? "bg-gradient-to-r from-[var(--pg-teal)] to-[#7778ec] text-white shadow-md shadow-indigo-500/25"
+                : "text-slate-700 hover:bg-teal-50 hover:text-teal-900 active:scale-98",
             )}
           >
-            <span>{item.icon}</span>
-            <span>{locale === "bn" ? item.label : item.labelEn}</span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-base transition-transform group-hover:scale-110">{item.icon}</span>
+              <span>{locale === "bn" ? item.label : item.labelEn}</span>
+            </div>
+            {active ? (
+              <span className="h-1.5 w-1.5 rounded-full bg-white shadow-sm" />
+            ) : (
+              <span className="text-xs text-slate-400 opacity-0 transition group-hover:opacity-100 group-hover:translate-x-0.5">
+                →
+              </span>
+            )}
           </Link>
         );
       })}

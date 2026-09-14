@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, EmptyState, SectionTitle, Select, Table, useToast } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Modal, SectionTitle, Select, Table, useToast } from "@/components/ui";
 
 type Session = {
   id: number;
@@ -21,6 +21,8 @@ export default function LivePage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [quizzes, setQuizzes] = useState<{ id: number; title: string; questionCount: number; mode: string }[]>([]);
   const [chosen, setChosen] = useState("");
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/live");
@@ -45,6 +47,27 @@ export default function LivePage() {
     const data = await res.json();
     if (!res.ok) return push(data.error ?? "ব্যর্থ", "error");
     router.push(`/host/${data.pin}`);
+  };
+
+  const handleDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/live?pin=${sessionToDelete.pin}`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pin: sessionToDelete.pin, id: sessionToDelete.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "মুছতে ব্যর্থ হয়েছে");
+      setSessions((prev) => prev.filter((x) => x.id !== sessionToDelete.id));
+      push(`সেশন PIN ${sessionToDelete.pin} ও এর সমস্ত ডেটা মুছে ফেলা হয়েছে ✅`, "success");
+      setSessionToDelete(null);
+    } catch (err) {
+      push(err instanceof Error ? err.message : "ব্যর্থ", "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -86,17 +109,56 @@ export default function LivePage() {
                   {new Date(s.createdAt).toLocaleString("bn-BD")}
                 </td>
                 <td className="px-3 py-2.5">
-                  <Link href={`/host/${s.pin}`}>
-                    <Button size="sm" variant={s.endedAt ? "outline" : "primary"}>
-                      {s.endedAt ? "ফলাফল" : "কন্ট্রোল"}
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Link href={`/host/${s.pin}`}>
+                      <Button size="sm" variant={s.endedAt ? "outline" : "primary"}>
+                        {s.endedAt ? "ফলাফল" : "কন্ট্রোল"}
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+                      onClick={() => setSessionToDelete(s)}
+                    >
+                      🗑️ ডিলিট
                     </Button>
-                  </Link>
+                  </div>
                 </td>
               </tr>
             ))}
           </Table>
         </Card>
       )}
+
+      <Modal open={Boolean(sessionToDelete)} onClose={() => !deleting && setSessionToDelete(null)} title="সেশন ডিলিট নিশ্চিতকরণ">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-2xl bg-rose-50 p-4 text-rose-900 border border-rose-200">
+            <span className="text-3xl">⚠️</span>
+            <div>
+              <p className="text-sm font-black text-rose-900">
+                আপনি কি নিশ্চিত যে PIN <span className="font-mono underline">{sessionToDelete?.pin}</span> এর লাইভ সেশনটি ডিলিট করতে চান?
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-rose-700">
+                কুইজ: <strong>{sessionToDelete?.title}</strong>। এই সেশনের সাথে সম্পর্কিত সকল অংশগ্রহণকারী, তাদের দেওয়া উত্তর ও তাৎক্ষণিক ফলাফল ডেটাবেজ থেকে সম্পূর্ণ মুছে যাবে।
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setSessionToDelete(null)} disabled={deleting}>
+              বাতিল
+            </Button>
+            <Button
+              variant="danger"
+              className="bg-rose-600 hover:bg-rose-700 text-white font-black"
+              loading={deleting}
+              onClick={handleDeleteSession}
+            >
+              হ্যাঁ, সম্পূর্ণ ডিলিট করুন
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

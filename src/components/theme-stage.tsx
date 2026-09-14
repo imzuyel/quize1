@@ -259,32 +259,30 @@ function BackgroundMotionLayer({ cfg }: { cfg: TemplateConfig }) {
 /* ------------------------------------------------------------------ */
 
 function ParticleLayer({ cfg }: { cfg: TemplateConfig }) {
-  const glyphs = PARTICLE_GLYPH[cfg.particles] ?? [];
   const count = Math.round((cfg.particleDensity / 100) * 34);
 
-  const items = useMemo(
-    () =>
-      Array.from({ length: count }).map((_, i) => ({
-        id: i,
-        glyph: glyphs[i % Math.max(1, glyphs.length)],
-        left: (i * 37) % 98,
-        size: 10 + ((i * 7) % 18),
-        dur: 8 + ((i * 3) % 12),
-        delay: (i % 11) * 0.8,
-        drift: ((i % 5) - 2) * 30,
-        color:
-          cfg.particles === "embers"
-            ? ["#f59e0b", "#ef4444", "#fbbf24"][i % 3]
-            : cfg.particles === "snow"
-              ? "#e0f2fe"
-              : cfg.particles === "petals"
-                ? ""
-                : cfg.particles === "code"
-                  ? cfg.accent
-                  : [cfg.primary, cfg.accent, cfg.secondary][i % 3],
-      })),
-    [count, glyphs, cfg.particles, cfg.primary, cfg.accent, cfg.secondary],
-  );
+  const items = useMemo(() => {
+    const glyphs = PARTICLE_GLYPH[cfg.particles] ?? [];
+    return Array.from({ length: count }).map((_, i) => ({
+      id: i,
+      glyph: glyphs[i % Math.max(1, glyphs.length)],
+      left: (i * 37) % 98,
+      size: 10 + ((i * 7) % 18),
+      dur: 8 + ((i * 3) % 12),
+      delay: (i % 11) * 0.8,
+      drift: ((i % 5) - 2) * 30,
+      color:
+        cfg.particles === "embers"
+          ? ["#f59e0b", "#ef4444", "#fbbf24"][i % 3]
+          : cfg.particles === "snow"
+            ? "#e0f2fe"
+            : cfg.particles === "petals"
+              ? ""
+              : cfg.particles === "code"
+                ? cfg.accent
+                : [cfg.primary, cfg.accent, cfg.secondary][i % 3],
+    }));
+  }, [count, cfg.particles, cfg.primary, cfg.accent, cfg.secondary]);
 
   if (cfg.particles === "none" || !count) return null;
   const rising = cfg.particles === "embers" || cfg.particles === "bubbles";

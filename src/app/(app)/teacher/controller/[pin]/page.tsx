@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { Badge, Button, Card, useToast, cx } from "@/components/ui";
 import { Leaderboard } from "@/components/quiz";
 import { liveAction, useLiveSession } from "@/lib/useLive";
+import { LiveQuestionPalette } from "@/components/live-question-palette";
+import { LiveSessionPacingTimer } from "@/components/live-session-timer";
 
 export default function TeacherControllerPage({ params }: { params: Promise<{ pin: string }> }) {
+  const router = useRouter();
   const { pin } = use(params);
-  const { snapshot, status } = useLiveSession(pin);
+  const { snapshot, status, isDeleted } = useLiveSession(pin);
   const { push } = useToast();
   const [busy, setBusy] = useState("");
   const [connectedAt, setConnectedAt] = useState<number | null>(null);
@@ -17,12 +21,33 @@ export default function TeacherControllerPage({ params }: { params: Promise<{ pi
     if (status === "connected") setConnectedAt((v) => v ?? Date.now());
   }, [status]);
 
+  useEffect(() => {
+    if (isDeleted && busy !== "delete") {
+      push("সেশনটি মুছে ফেলা হয়েছে", "info");
+      router.push("/teacher/live");
+    }
+  }, [isDeleted, busy, router, push]);
+
   const control = async (command: string, extra: Record<string, unknown> = {}) => {
     setBusy(command);
     try {
       await liveAction({ action: "control", pin, command, ...extra });
     } catch (err) {
       push(err instanceof Error ? err.message : "কন্ট্রোল ব্যর্থ হয়েছে", "error");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const deleteSession = async () => {
+    if (!window.confirm("আপনি কি নিশ্চিত এই লাইভ সেশন এবং এর সমস্ত প্লেয়ার ও উত্তরের ডেটা মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।")) return;
+    setBusy("delete");
+    try {
+      await liveAction({ action: "delete", pin });
+      push("লাইভ সেশন মুছে ফেলা হয়েছে ✅", "success");
+      router.push("/teacher/live");
+    } catch (err) {
+      push(err instanceof Error ? err.message : "সেশন মুছতে সমস্যা হয়েছে", "error");
     } finally {
       setBusy("");
     }
@@ -78,6 +103,25 @@ export default function TeacherControllerPage({ params }: { params: Promise<{ pi
                 </div>
               </div>
 
+              {q && state !== "lobby" && state !== "quiz_complete" ? (
+                <div className="mt-4">
+                  <LiveSessionPacingTimer
+                    endsAt={session?.endsAt ?? null}
+                    totalSeconds={q.timer}
+                    paused={isPaused}
+                    questionIndex={session?.currentIndex ?? 0}
+                    totalQuestions={total}
+                    answeredCount={answered}
+                    totalPlayers={players.length}
+                    revealed={q.revealed}
+                    onExtend={(s) => control("extend", { seconds: s })}
+                    onTogglePause={() => control(isPaused ? "resume" : "pause")}
+                    onReveal={() => control("reveal")}
+                    compact
+                  />
+                </div>
+              ) : null}
+
               {q ? (
                 <div className="mt-4 rounded-2xl bg-slate-50 p-4">
                   <p className="text-base font-extrabold leading-snug sm:text-lg">{q.text}</p>
@@ -93,6 +137,14 @@ export default function TeacherControllerPage({ params }: { params: Promise<{ pi
                 </div>
               ) : null}
             </Card>
+
+            <LiveQuestionPalette
+              palette={snapshot.palette}
+              currentIndex={session?.currentIndex ?? 0}
+              totalPlayers={players.length}
+              onJump={(index) => control("jump", { index })}
+              compact
+            />
 
             <Card>
               <p className="mb-3 text-xs font-black uppercase tracking-widest text-slate-400">Live controls</p>
@@ -113,10 +165,11 @@ export default function TeacherControllerPage({ params }: { params: Promise<{ pi
                 </Button>
               ) : null}
 
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="mt-3 grid grid-cols-4 gap-2">
                 <Button variant="outline" size="sm" onClick={() => control("extend", { seconds: 10 })} loading={busy === "extend"}>+10 sec</Button>
                 <Button variant="outline" size="sm" onClick={() => control("extend", { seconds: 30 })} loading={busy === "extend"}>+30 sec</Button>
                 <Button variant="danger" size="sm" onClick={() => { if (window.confirm("এই লাইভ কুইজ শেষ করবেন?")) void control("end"); }} loading={busy === "end"}>🛑 End</Button>
+                <Button variant="danger" size="sm" className="bg-rose-700 hover:bg-rose-800 text-white font-bold" onClick={deleteSession} loading={busy === "delete"}>🗑️ Delete</Button>
               </div>
             </Card>
 

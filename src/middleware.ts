@@ -9,19 +9,26 @@ const SESSION_COOKIE = "pgtsc_session";
  */
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", pathname + search);
 
   if (req.cookies.has(SESSION_COOKIE)) {
-    // Expose the path so the layout can build an accurate fallback redirect
-    // when a cookie exists but the session has already expired.
-    const headers = new Headers(req.headers);
-    headers.set("x-pathname", pathname + search);
     return NextResponse.next({ request: { headers } });
   }
 
   const demoMode = process.env.DEMO_MODE !== "false";
+  if (demoMode) {
+    let role = "student";
+    if (pathname.startsWith("/admin")) role = "admin";
+    else if (pathname.startsWith("/teacher") || pathname.startsWith("/host")) role = "teacher";
+    else if (pathname.startsWith("/parent")) role = "parent";
+    headers.set("x-demo-role", role);
+    return NextResponse.next({ request: { headers } });
+  }
+
   const url = req.nextUrl.clone();
-  url.pathname = demoMode ? "/demo" : "/login";
-  url.search = demoMode ? `?next=${encodeURIComponent(pathname + search)}` : "";
+  url.pathname = "/login";
+  url.search = "";
   return NextResponse.redirect(url);
 }
 

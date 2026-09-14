@@ -2,8 +2,12 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSeo } from "@/lib/seo";
 import { LandingPreviews } from "@/components/landing-previews";
-import { DemoEntry, RoleGrid } from "@/components/demo-entry";
+import { RoleGrid } from "@/components/demo-entry";
 import { AUTHOR, DeveloperCard, SocialRing } from "@/components/credit";
+import { HomeHero } from "@/components/home-hero";
+import { HomeGuide } from "@/components/home-guide";
+import { HomeFeatures } from "@/components/home-features";
+import { HomeGameFeatures } from "@/components/home-game-features";
 import { db } from "@/db";
 import { settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -17,14 +21,6 @@ const FEATURES = [
   { icon: "📝", title: "ফরমাল অনলাইন পরীক্ষা", body: "প্রশ্ন প্যালেট, মার্ক ফর রিভিউ, অটো-সেভ, নেগেটিভ মার্কিং ও অটো-সাবমিট।", href: "/demo?next=/student/quizzes" },
   { icon: "🎨", title: "টেমপ্লেট স্টুডিও", body: "১৬টি অ্যানিমেটেড থিম — রঙ, পার্টিকেল, টাইমার স্টাইল ও উদযাপন কাস্টমাইজ করুন।", href: "/demo?next=/teacher/templates" },
   { icon: "📈", title: "অ্যানালিটিক্স ও রিপোর্ট", body: "বিষয়ভিত্তিক পারফরম্যান্স, কঠিন প্রশ্ন, এআই শিক্ষণ পরামর্শ ও CSV এক্সপোর্ট।", href: "/demo?next=/teacher/analytics" },
-];
-
-const QUICK_LINKS = [
-  { icon: "✨", label: "এআই প্রশ্ন জেনারেটর", href: "/demo?next=/teacher/ai" },
-  { icon: "📘", label: "বইয়ের PDF থেকে প্রশ্ন", href: "/demo?next=/teacher/ai%3Ftab%3Ddocument" },
-  { icon: "🎛️", label: "কুইজ স্টুডিও", href: "/demo?next=/teacher/quizzes" },
-  { icon: "🎨", label: "থিম স্টুডিও", href: "/demo?next=/teacher/templates" },
-  { icon: "📡", label: "লাইভ কুইজ", href: "/demo?next=/teacher/live" },
 ];
 
 export default async function Home({
@@ -49,189 +45,229 @@ export default async function Home({
           : "/student";
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#171c4a]/80 shadow-lg shadow-indigo-950/15 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 font-black text-white shadow-lg shadow-violet-900/30">
-            PG
-          </span>
-          <div className="leading-tight text-white">
-            <p className="text-sm font-extrabold">{seo.siteName}</p>
-            <p className="hidden text-[10px] text-white/60 sm:block">{seo.siteNameEn}</p>
-          </div>
-          <div className="hidden items-center gap-1 lg:flex">
-            <Link href="/about" className="rounded-lg px-2.5 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white">সম্পর্কে</Link>
-            <Link href="/gallery" className="rounded-lg px-2.5 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white">গ্যালারি</Link>
-            <Link href="/reviews" className="rounded-lg px-2.5 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white">রিভিউ</Link>
-            <Link href="/contact" className="rounded-lg px-2.5 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white">যোগাযোগ</Link>
-          </div>
-          <div className="flex-1" />
-          {demoMode ? (
-            <a
-              href="/demo?next=/teacher/ai"
-              className="hidden rounded-xl bg-[var(--pg-teal)] px-4 py-2 text-sm font-bold text-white sm:block"
-            >
-              ✨ এআই জেনারেটর
-            </a>
-          ) : (
+    <div className="min-h-screen bg-[#070b1e] text-slate-100 selection:bg-teal-500 selection:text-white">
+      {/* Top Header - Full Screen Ultra Glass Design */}
+      <header className="sticky top-0 z-50 border-b border-teal-500/20 bg-[#060a1e]/90 shadow-2xl backdrop-blur-2xl">
+        <div className="w-full max-w-[1700px] mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-8 lg:px-12 xl:px-16">
+          <Link href="/" className="flex items-center gap-3 group">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-teal-400 via-indigo-500 to-violet-600 font-black text-white shadow-lg shadow-teal-500/30 text-base group-hover:scale-105 transition-transform">
+              🎮
+            </span>
+            <div className="leading-tight">
+              <p className="text-sm sm:text-base font-black text-white tracking-wide group-hover:text-teal-300 transition-colors">{seo.siteName}</p>
+              <p className="hidden text-[10px] text-teal-300/80 font-bold sm:block">{seo.siteNameEn}</p>
+            </div>
+          </Link>
+
+          {/* Quick Nav Links with Glow & Pill Styling */}
+          <nav className="hidden lg:flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1 backdrop-blur-md">
+            <Link href="/join" className="rounded-full px-3.5 py-1.5 text-xs font-black text-teal-300 hover:bg-teal-500/20 transition">🎮 কুইজে যোগ দিন</Link>
+            <Link href="#game-features" className="rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition">⚡ গেম ফিচার</Link>
+            <Link href="/leaderboard" className="rounded-full px-3.5 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition">🏆 লিডারবোর্ড</Link>
+            <Link href="/gallery" className="rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition">🎨 গ্যালারি</Link>
+            <Link href="/reviews" className="rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition">💬 রিভিউ</Link>
+            <Link href="/about" className="rounded-full px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition">পরিচিতি</Link>
+          </nav>
+
+          {/* Dedicated Student & Teacher Actions */}
+          <div className="flex items-center gap-2.5">
+            {/* Student Direct Join Button with Glow Pulse */}
             <Link
-              href="/login"
-              className="hidden rounded-xl bg-[var(--pg-teal)] px-4 py-2 text-sm font-bold text-white sm:block"
+              href="/join"
+              className="relative flex items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-400 px-4 sm:px-5 py-2 text-xs sm:text-sm font-black text-slate-950 shadow-lg shadow-teal-500/30 hover:brightness-110 active:scale-95 transition"
             >
-              লগইন
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950" />
+              </span>
+              <span>🎮 গেম পিন দিন</span>
             </Link>
-          )}
-          <Link href="/leaderboard" className="hidden rounded-xl border border-white/25 px-3 py-2 text-sm font-bold text-white hover:bg-white/10 md:block">🏆 লিডারবোর্ড</Link>
-          <Link
-            href="/join"
-            className="rounded-xl bg-[var(--pg-teal)] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-cyan-900/20 hover:-translate-y-0.5"
-          >
-            🚀 কুইজে যোগ দিন
-          </Link>
-          <Link
-            href={user ? home : demoMode ? "#roles" : "/login"}
-            className="rounded-xl bg-[var(--pg-gold)] px-4 py-2 text-sm font-bold text-[#3b2a06]"
-          >
-            {user ? "ড্যাশবোর্ড" : "শুরু করুন"}
-          </Link>
+
+            {/* Teacher Dedicated Link */}
+            <Link
+              href={user?.role === "teacher" ? "/teacher" : "/demo?role=teacher&next=/teacher"}
+              className="hidden sm:flex items-center gap-1.5 rounded-2xl border border-indigo-400/30 bg-indigo-600/20 px-3.5 py-2 text-xs sm:text-sm font-bold text-indigo-200 hover:bg-indigo-600/40 transition"
+            >
+              <span>👨‍🏫</span>
+              <span>শিক্ষক পোর্টাল</span>
+            </Link>
+
+            {user ? (
+              <Link
+                href={home}
+                className="rounded-2xl bg-white/10 border border-white/20 px-3 py-2 text-xs sm:text-sm font-bold text-white hover:bg-white/20 transition"
+              >
+                ড্যাশবোর্ড
+              </Link>
+            ) : null}
+          </div>
         </div>
       </header>
 
-      <div className="sticky top-16 z-20 border-b border-white/10 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 px-4 py-2 text-center text-sm font-bold text-white shadow-md">
-        🎮 ক্লাসে কুইজ চলছে? <Link href="/join" className="underline decoration-2 underline-offset-4">এখানে Join করুন</Link> — শুধু কোড/কিওয়ার্ড দিলেই হবে · <Link href="/leaderboard" className="underline decoration-2 underline-offset-4">🏆 লিডারবোর্ড</Link>
+      {/* Ticker notice */}
+      <div className="border-b border-teal-500/20 bg-gradient-to-r from-teal-950/90 via-slate-950 to-indigo-950/90 px-4 py-2.5 text-center text-xs sm:text-sm font-bold text-teal-200 backdrop-blur">
+        ⚡ ক্লাসে লাইভ কুইজ চলছে?{" "}
+        <Link href="/join" className="text-white underline decoration-teal-400 decoration-2 underline-offset-4 font-black">
+          এখানে PIN দিয়ে সরাসরি Join করুন
+        </Link>
+        {" "}· কোনো অ্যাপ বা পাসওয়ার্ডের প্রয়োজন নেই!
       </div>
 
       {unavailable ? (
-        <div className="bg-amber-100 px-4 py-2.5 text-center text-sm font-semibold text-amber-900">
-          ⚠️ ডেমো ডেটা এখনো প্রস্তুত হয়নি। কয়েক সেকেন্ড পর আবার চেষ্টা করুন —{" "}
-          <a href="/demo?next=/teacher/ai" className="underline">আবার চেষ্টা করুন</a>
+        <div className="bg-amber-500/20 border-b border-amber-500/40 px-4 py-2.5 text-center text-xs sm:text-sm font-bold text-amber-200">
+          ⚠️ ডেমো ডেটা প্রস্তুত হচ্ছে। কয়েক সেকেন্ড পর আবার চেষ্টা করুন —{" "}
+          <a href="/demo?next=/teacher/ai" className="underline">রিফ্রেশ করুন</a>
         </div>
       ) : null}
 
-      <section className="pg-hero-bg relative overflow-hidden">
-        <div className="pg-grid-lines absolute inset-0 opacity-60" />
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:py-20 lg:grid-cols-2 lg:items-center">
-          <div className="text-white">
-            <span className="anim-fade inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">
-              🇧🇩 বাংলা-ফার্স্ট · কারিগরি শিক্ষার জন্য তৈরি
+      {/* 1. Full-Screen Modern Hero with Word Slider, Student Join Input & Teacher Portal */}
+      <HomeHero signedIn={Boolean(user)} userRole={user?.role} />
+
+      {/* 2. Interactive Step-by-Step Scroll Walkthrough: How to Join & Play */}
+      <HomeGuide />
+
+      {/* 3. Ultra-Design Glow Glass Vector Cards & Game Features */}
+      <HomeGameFeatures />
+
+      {/* 4. Interactive Live Feature Preview Tab Component */}
+      <section className="relative w-full bg-[#0a0f26] py-16 px-4 sm:px-8 lg:px-14 xl:px-20 border-t border-slate-800/80">
+        <div className="max-w-[1700px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          <div className="lg:col-span-5 space-y-4">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-3.5 py-1 text-xs font-bold text-violet-300">
+              ⚡ লাইভ ডেমো ও প্রিভিউ
             </span>
-            <h1 className="anim-fade mt-5 text-3xl font-black leading-tight sm:text-5xl">
-              প্রতিটি ক্লাসকে বানান <span className="text-[var(--pg-gold)]">ইন্টারেক্টিভ</span> শেখার
-              অভিজ্ঞতা
-            </h1>
-            <p className="anim-fade mt-4 max-w-xl text-base text-white/80 sm:text-lg">
-              এআই-চালিত কুইজ, লাইভ প্রতিযোগিতা, স্মার্ট পরীক্ষা ও ব্যক্তিগত শেখা—সব এক প্ল্যাটফর্মে।
+            <h2 className="text-2xl sm:text-4xl font-black text-white leading-tight">
+              স্মার্ট কুইজ ও ক্লাস অ্যানালিটিক্স লাইভ দেখুন
+            </h2>
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+              সিস্টেমটি দেখতে কেমন এবং কুইজ খেলায় কীভাবে শিক্ষার্থীরা লাইভ ইন্টারঅ্যাক্ট করে তা ডানপাশের লাইভ প্রিভিউ ট্যাবে এখনই পরখ করে দেখুন।
             </p>
-            <p className="anim-fade mt-2 text-sm text-white/60">
-              Turn every class into an interactive learning experience.
+            <div className="pt-2 flex flex-wrap gap-2.5">
+              <Link
+                href="/join"
+                className="rounded-xl bg-teal-500 hover:bg-teal-400 px-4 py-2.5 text-xs font-black text-slate-950 transition shadow-lg shadow-teal-500/30"
+              >
+                🎮 লাইভ কুইজে যোগ দিন
+              </Link>
+              <Link
+                href="/demo?role=teacher&next=/teacher/live"
+                className="rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-4 py-2.5 text-xs font-bold text-white transition"
+              >
+                📡 লাইভ হোস্ট ট্রাই করুন
+              </Link>
+            </div>
+          </div>
+          <div className="lg:col-span-7">
+            <LandingPreviews />
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Full-Screen Vocational Trades & 17+ Question Formats Grid */}
+      <HomeFeatures />
+
+      {/* 6. Core Platform Features Bento Grid */}
+      <section className="relative w-full bg-slate-950 py-20 px-4 sm:px-8 lg:px-14 xl:px-20 border-t border-slate-800">
+        <div className="max-w-[1700px] mx-auto">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 px-4 py-1.5 text-xs font-bold text-teal-300">
+              🎛️ অল-ইন-ওয়ান কুইজ স্টুডিও
+            </span>
+            <h2 className="mt-4 text-2xl sm:text-4xl font-black text-white tracking-tight">
+              রোমাঞ্চকর কুইজ ও মাল্টিপ্লেয়ার গেম স্টুডিও
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-slate-300">
+              প্রশ্ন ব্যাংক, কুইজ স্টুডিও, লাইভ ইঞ্জিন, পরীক্ষা মোড, অনুশীলন, অ্যানালিটিক্স ও ট্রফি — যেকোনো বিষয়ে তাৎক্ষণিক কুইজ খেলা ও প্র্যাকটিস।
             </p>
-            <div className="mt-7">
-              <DemoEntry signedIn={Boolean(user)} home={home} />
-            </div>
-
-            {demoMode ? (
-            <div className="mt-5">
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-white/50">
-                সরাসরি ফিচারে যান
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {QUICK_LINKS.map((q) => (
-                  <a
-                    key={q.href}
-                    href={q.href}
-                    className="rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/20"
-                  >
-                    {q.icon} {q.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-            ) : null}
-
-            <dl className="mt-9 grid max-w-md grid-cols-3 gap-3 text-center">
-              {[
-                { k: "১০০০+", v: "প্রশ্ন এক জেনারেশনে" },
-                { k: "৫০০০+", v: "একযোগে অংশগ্রহণকারী*" },
-                { k: "১৭", v: "প্রশ্নের ধরন" },
-              ].map((s) => (
-                <div key={s.k} className="rounded-xl border border-white/15 bg-white/5 p-3">
-                  <dt className="text-xl font-black text-[var(--pg-gold)]">{s.k}</dt>
-                  <dd className="mt-0.5 text-[11px] text-white/70">{s.v}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-2 text-[10px] text-white/40">*ডিপ্লয়মেন্ট অবকাঠামোর উপর নির্ভরশীল</p>
           </div>
 
-          <LandingPreviews />
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {FEATURES.map((f) => (
+              <a
+                key={f.title}
+                href={demoMode ? f.href : "/login"}
+                className="group relative rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-teal-400/60 hover:bg-slate-900 shadow-xl overflow-hidden"
+              >
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-500/10 border border-teal-400/30 text-2xl group-hover:scale-110 transition-transform">
+                  {f.icon}
+                </div>
+                <h3 className="mt-4 text-lg font-black text-white group-hover:text-teal-300 transition">
+                  {f.title}
+                </h3>
+                <p className="mt-2 text-xs sm:text-sm leading-relaxed text-slate-300">
+                  {f.body}
+                </p>
+                <div className="mt-4 flex items-center gap-1.5 text-xs font-black text-teal-400 group-hover:translate-x-1 transition-transform">
+                  <span>এখনই দেখুন</span>
+                  <span>→</span>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-14">
-        <h2 className="text-center text-2xl font-extrabold sm:text-3xl">
-          শিক্ষক যা কল্পনা করেন, কোড ছাড়াই তা তৈরি করুন
-        </h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-slate-500">
-          প্রশ্ন ব্যাংক, কুইজ স্টুডিও, লাইভ ইঞ্জিন, পরীক্ষা মোড, অনুশীলন, টেমপ্লেট, অ্যানালিটিক্স ও
-          অর্জন — সবকিছু একসাথে।
-        </p>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <a
-              key={f.title}
-              href={demoMode ? f.href : "/login"}
-              className="pg-surface pg-shadow group block p-5 transition hover:-translate-y-0.5 hover:border-[var(--pg-teal)]"
-            >
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--pg-mist)] text-xl">
-                {f.icon}
-              </div>
-              <h3 className="mt-3 font-bold">{f.title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{f.body}</p>
-              <span className="mt-2 inline-block text-xs font-bold text-[var(--pg-teal)] opacity-0 transition group-hover:opacity-100">
-                এখনই দেখুন →
-              </span>
-            </a>
-          ))}
-        </div>
-      </section>
-
+      {/* 6. Multi-Role Direct Entry Showcase */}
       {demoMode ? (
-        <section id="roles" className="scroll-mt-20 border-y border-[var(--pg-line)] bg-white py-12">
-          <div className="mx-auto max-w-6xl px-4">
-            <h2 className="text-center text-xl font-extrabold">সবার জন্য আলাদা অভিজ্ঞতা</h2>
-            <p className="mx-auto mt-1 max-w-md text-center text-sm text-slate-500">
-              ভূমিকায় ক্লিক করলেই সরাসরি সেই ড্যাশবোর্ডে প্রবেশ করবেন।
-            </p>
-            <RoleGrid />
+        <section id="roles" className="relative w-full scroll-mt-20 border-t border-slate-800 bg-[#090e24] py-16 px-4 sm:px-8 lg:px-14 xl:px-20">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center max-w-2xl mx-auto">
+              <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-400">
+                ভূমিকা নির্বাচন
+              </span>
+              <h2 className="mt-2 text-2xl sm:text-3xl font-black text-white">
+                সকল স্টেকহোল্ডারের জন্য পৃথক পোর্টাল
+              </h2>
+              <p className="mt-2 text-sm text-slate-300">
+                যেকোনো ভূমিকায় ক্লিক করে সাথে সাথে সেই নির্দিষ্ট ইন্টারফেসে প্রবেশ করুন।
+              </p>
+            </div>
+            <div className="mt-8">
+              <RoleGrid />
+            </div>
           </div>
         </section>
       ) : null}
 
-      <section className="mx-auto max-w-3xl px-4 py-14">
-        <h2 className="mb-1 text-center text-xl font-extrabold">যিনি তৈরি করেছেন</h2>
-        <p className="mb-6 text-center text-sm text-slate-500">
-          শিক্ষকদের জন্য, একজন শিক্ষকের হাতে তৈরি
-        </p>
-        <DeveloperCard branding={branding} />
+      {/* 7. Developer & Institutional Credits */}
+      <section className="relative w-full border-t border-slate-800 bg-slate-950 py-16 px-4 sm:px-8 lg:px-14 xl:px-20">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="mb-1 text-center text-xl sm:text-2xl font-black text-white">কারিগরি প্রতিষ্ঠাতা ও পরিচিতি</h2>
+          <p className="mb-8 text-center text-xs sm:text-sm text-slate-400">
+            শিক্ষার্থীদের ভবিষ্যৎ ও কারিগরি শিক্ষার ডিজিটাল রূপান্তরের লক্ষ্যে নির্মিত
+          </p>
+          <DeveloperCard branding={branding} />
+        </div>
       </section>
 
-      <footer className="bg-[#171c4a] py-10 text-white/70">
-        <div className="mx-auto max-w-6xl px-4 text-sm">
-          <p className="font-bold text-white">{String(branding.schoolName || seo.siteName)}</p>
-          <p className="mt-1 text-xs">{String(branding.contact || "")} {branding.email ? `| ${String(branding.email)}` : ""}</p>
-          <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-white/10 pt-5">
+      {/* 8. Full-Width Clean Modern Footer */}
+      <footer className="border-t border-white/10 bg-[#050816] py-12 text-slate-400 text-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-14">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/40">ডেভেলপার</p>
+              <p className="font-black text-white text-base">{String(branding.schoolName || seo.siteName)}</p>
+              <p className="mt-1 text-xs text-slate-400">{String(branding.contact || "")} {branding.email ? `| ${String(branding.email)}` : ""}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href="/join" className="text-xs font-bold text-teal-400 hover:underline">কুইজে যোগ দিন</Link>
+              <Link href="/leaderboard" className="text-xs font-bold text-slate-300 hover:underline">লিডারবোর্ড</Link>
+              <Link href="/demo?role=teacher&next=/teacher" className="text-xs font-bold text-indigo-400 hover:underline">শিক্ষক ড্যাশবোর্ড</Link>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">ডেভেলপার ও ইন্সট্রাক্টর</p>
               <p className="mt-0.5 text-sm font-bold text-white/90">{String(branding.developerName || AUTHOR.name)}</p>
-              <p className="text-[11px] text-white/50">{String(branding.developerTitle || AUTHOR.title)}</p>
+              <p className="text-[11px] text-slate-400">{String(branding.developerTitle || AUTHOR.title)}</p>
             </div>
             <SocialRing tone="dark" size={20} />
           </div>
-          <p className="mt-4 text-xs text-white/40">
-            {String(branding.copyright || "© পিজিটিএসসি কুইজ অ্যারেনা — কারিগরি শিক্ষা অধিদপ্তর")}
+          <p className="mt-6 text-center md:text-left text-xs text-slate-500">
+            {String(branding.copyright || "© পঞ্চগড় সরকারি কারিগরি স্কুল ও কলেজ — কারিগরি শিক্ষা অধিদপ্তর")}
           </p>
         </div>
       </footer>
     </div>
   );
 }
+

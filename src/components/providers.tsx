@@ -1,13 +1,19 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "./ui";
+import { TopLoader } from "./top-loader";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <I18nProvider>
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider>
+        <Suspense fallback={null}>
+          <TopLoader />
+        </Suspense>
+        {children}
+      </ToastProvider>
     </I18nProvider>
   );
 }

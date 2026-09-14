@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Confetti, DonutChart, Modal, useToast, cx } from "@/components/ui";
 import { QuestionInput } from "@/components/interactive";
+import { QuizResultFeedbackCard } from "@/components/quiz-result-feedback-card";
 
 type Q = {
   id: number;
@@ -64,9 +65,25 @@ export default function ExamRunner({ params }: { params: Promise<{ attemptId: st
     const data = await res.json();
     if (res.ok) {
       setResult(data);
+      try {
+        localStorage.setItem(
+          "pg_last_completed_quiz",
+          JSON.stringify({
+            quizTitle: quiz?.title || "পরীক্ষা",
+            score: data.score,
+            rank: 1,
+            totalPlayers: 1,
+            accuracy: data.accuracy,
+            correctCount: data.correctCount,
+            totalQuestions: data.total,
+            answeredCount: data.total,
+            completedAt: Date.now(),
+          }),
+        );
+      } catch {}
       push("জমা হয়েছে ✅", "success");
     }
-  }, [attemptId, push]);
+  }, [attemptId, quiz, push]);
 
   const remaining = attempt?.endsAt ? Math.max(0, new Date(attempt.endsAt).getTime() - now) : null;
   useEffect(() => {
@@ -113,9 +130,22 @@ export default function ExamRunner({ params }: { params: Promise<{ attemptId: st
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         <Confetti />
+        <QuizResultFeedbackCard
+          result={{
+            quizTitle: quiz?.title || "পরীক্ষা",
+            score: result.score,
+            rank: 1,
+            totalPlayers: 1,
+            accuracy: result.accuracy,
+            correctCount: result.correctCount,
+            totalQuestions: result.total,
+            answeredCount: result.total,
+          }}
+          showActions={false}
+        />
         <Card className="text-center">
           <div className="text-5xl">🎉</div>
-          <h1 className="mt-2 text-2xl font-extrabold">ফলাফল</h1>
+          <h1 className="mt-2 text-2xl font-extrabold">ফলাফল সারাংশ</h1>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-6">
             <DonutChart value={result.accuracy} label="নির্ভুলতা" />
             <div className="text-left">
@@ -125,7 +155,7 @@ export default function ExamRunner({ params }: { params: Promise<{ attemptId: st
           </div>
           <div className="mt-5 flex justify-center gap-2">
             <Link href="/student/results"><Button>ফলাফল দেখুন</Button></Link>
-            <Link href="/student"><Button variant="outline">ড্যাশবোর্ড</Button></Link>
+            <Link href="/student"><Button variant="outline">🏠 ড্যাশবোর্ড (হোম স্ক্রিন)</Button></Link>
           </div>
         </Card>
       </div>

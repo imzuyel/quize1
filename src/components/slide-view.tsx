@@ -226,7 +226,7 @@ export function SlideView({
   const hasMedia = Boolean(mediaUrl) || slide.layout === "media" || slide.layout === "image_text";
   const isBackdrop = hasMedia && (pos === "background" || slide.layout === "media" || pos === "full");
 
-  const Title = ({ size = 44, center = false }: { size?: number; center?: boolean }) => (
+  const renderTitle = (size = 44, center = false) => (
     <h2
       className={cx("font-extrabold leading-tight", center && "text-center", el)}
       style={{ fontSize: f(size), color: t.text, ...delay(0) }}
@@ -236,14 +236,14 @@ export function SlideView({
     </h2>
   );
 
-  const Sub = ({ size = 20, center = false }: { size?: number; center?: boolean }) =>
+  const renderSub = (size = 20, center = false) =>
     slide.subtitle ? (
       <p className={cx(center && "text-center", el)} style={{ fontSize: f(size), color: t.muted, marginTop: 8 * scale, ...delay(1) }}>
         {slide.subtitle}
       </p>
     ) : null;
 
-  const Bar = ({ center }: { center?: boolean }) => (
+  const renderBar = (center?: boolean) => (
     <span className={cx("block rounded-full", center && "mx-auto")}
       style={{ width: 64 * scale, height: 4 * scale, background: t.accent, marginTop: 12 * scale }} />
   );
@@ -282,8 +282,8 @@ export function SlideView({
               style={{ fontSize: f(slide.layout === "title" ? 54 : 44), color: t.text, marginTop: 10 * scale, ...delay(1) }}>
               {slide.title}
             </h1>
-            <Sub size={22} center />
-            <Bar center />
+            {renderSub(22, true)}
+            {renderBar(true)}
           </div>
         ) : slide.layout === "quote" ? (
           <div className="text-center">
@@ -292,14 +292,14 @@ export function SlideView({
               style={{ fontSize: f(34), color: t.text, marginTop: 12 * scale }}>
               {slide.title}
             </p>
-            <Sub size={18} center />
+            {renderSub(18, true)}
           </div>
         ) : slide.layout === "big_number" ? (
           <div className="text-center">
             <p className={cx("font-black leading-none", anim)} style={{ fontSize: f(110), color: t.accent }}>
               {slide.title}
             </p>
-            <Sub size={24} center />
+            {renderSub(24, true)}
           </div>
         ) : slide.layout === "media" ? (
           <div className="flex h-full flex-col justify-end">
@@ -307,7 +307,7 @@ export function SlideView({
               {slide.icon ? <span className="mr-2">{slide.icon}</span> : null}
               {slide.title}
             </h2>
-            <Sub size={20} />
+            {renderSub(20)}
             {slide.media?.caption ? (
               <p className={el} style={{ fontSize: f(15), color: t.muted, marginTop: 6 * scale, ...delay(2) }}>
                 {slide.media.caption}
@@ -320,8 +320,8 @@ export function SlideView({
             style={{ gap: 26 * scale }}
           >
             <div className={cx("flex min-w-0 flex-col justify-center", pos === "top" ? "" : "flex-1")}>
-              <Title size={34} />
-              <Bar />
+              {renderTitle(34)}
+              {renderBar()}
               <ul style={{ marginTop: 18 * scale }}>
                 {bullets.map((b, i) => (
                   <li key={i} className={cx("flex items-start", el)}
@@ -348,8 +348,8 @@ export function SlideView({
           </div>
         ) : (
           <>
-            <Title size={38} />
-            <Bar />
+            {renderTitle(38)}
+            {renderBar()}
             {slide.layout === "two_column" || slide.layout === "comparison" ? (
               <div className="grid flex-1 grid-cols-2 items-start" style={{ gap: 24 * scale, marginTop: 22 * scale }}>
                 {[0, 1].map((col) => {

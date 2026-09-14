@@ -1,5 +1,9 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { db } from "@/db";
+import { sessionsTable, users } from "@/db/schema";
+import { and, asc, eq, gt } from "drizzle-orm";
+import { demoSeedAllowed, seedDatabase } from "./seed";
 
 /** Generates a readable but unguessable temporary password. */
 export function generatePassword(length = 10): string {
@@ -11,13 +15,11 @@ export function generatePassword(length = 10): string {
 }
 
 export const MIN_PASSWORD_LENGTH = 8;
-import { db } from "@/db";
-import { sessionsTable, users } from "@/db/schema";
-import { and, eq, gt } from "drizzle-orm";
 
 export type Role = "super_admin" | "admin" | "teacher" | "student" | "parent";
 
 export const SESSION_COOKIE = "pgtsc_session";
+export const DEMO_ROLE_COOKIE = "pgtsc_demo_role";
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -59,7 +61,8 @@ export async function createSession(userId: number): Promise<string> {
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
+    secure: true,
     path: "/",
     expires: expiresAt,
   });
@@ -73,13 +76,11 @@ export async function destroySession() {
     await db.delete(sessionsTable).where(eq(sessionsTable.token, token));
     store.delete(SESSION_COOKIE);
   }
+  store.delete(DEMO_ROLE_COOKIE);
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+async function getDemoUser(role: string): Promise<SessionUser | null> {
   try {
-    const store = await cookies();
-    const token = store.get(SESSION_COOKIE)?.value;
-    if (!token) return null;
     const rows = await db
       .select({
         id: users.id,
@@ -94,13 +95,101 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
         level: users.level,
         locale: users.locale,
       })
-      .from(sessionsTable)
-      .innerJoin(users, eq(users.id, sessionsTable.userId))
-      .where(and(eq(sessionsTable.token, token), gt(sessionsTable.expiresAt, new Date())))
+      .from(users)
+      .where(and(eq(users.role, role), eq(users.active, true), eq(users.status, "approved")))
+      .orderBy(asc(users.id))
       .limit(1);
-    const row = rows[0];
-    if (!row) return null;
-    return { ...row, role: row.role as Role } as SessionUser;
+
+    if (rows[0]) {
+      return { ...rows[0], role: rows[0].role as Role } as SessionUser;
+    }
+
+    if (demoSeedAllowed()) {
+      await seedDatabase();
+      const retry = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role,
+          classId: users.classId,
+          sectionId: users.sectionId,
+          tradeId: users.tradeId,
+          studentId: users.studentId,
+          xp: users.xp,
+          level: users.level,
+          locale: users.locale,
+        })
+        .from(users)
+        .where(and(eq(users.role, role), eq(users.active, true), eq(users.status, "approved")))
+        .orderBy(asc(users.id))
+        .limit(1);
+      if (retry[0]) {
+        return { ...retry[0], role: retry[0].role as Role } as SessionUser;
+      }
+    }
+  } catch (err) {
+    console.error("[getDemoUser error]", err);
+  }
+  return null;
+}
+
+export async function getCurrentUser(): Promise<SessionUser | null> {
+  try {
+    const store = await cookies();
+    const token = store.get(SESSION_COOKIE)?.value;
+    if (token) {
+      const rows = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role,
+          classId: users.classId,
+          sectionId: users.sectionId,
+          tradeId: users.tradeId,
+          studentId: users.studentId,
+          xp: users.xp,
+          level: users.level,
+          locale: users.locale,
+        })
+        .from(sessionsTable)
+        .innerJoin(users, eq(users.id, sessionsTable.userId))
+        .where(and(eq(sessionsTable.token, token), gt(sessionsTable.expiresAt, new Date())))
+        .limit(1);
+      const row = rows[0];
+      if (row) return { ...row, role: row.role as Role } as SessionUser;
+    }
+
+    if (process.env.DEMO_MODE !== "false") {
+      const h = await headers();
+      const xRole = h.get("x-demo-role");
+      const xPath = h.get("x-pathname") || "";
+      const referer = h.get("referer") || "";
+      const cookieRole = store.get(DEMO_ROLE_COOKIE)?.value;
+
+      let role = xRole || cookieRole;
+      if (!role) {
+        const pathToCheck = xPath || referer;
+        if (pathToCheck.includes("/admin")) role = "admin";
+        else if (pathToCheck.includes("/teacher") || pathToCheck.includes("/host")) role = "teacher";
+        else if (pathToCheck.includes("/parent")) role = "parent";
+        else if (
+          pathToCheck.includes("/student") ||
+          pathToCheck.includes("/leaderboard") ||
+          pathToCheck.includes("/play") ||
+          pathToCheck.includes("/settings")
+        ) {
+          role = "student";
+        }
+      }
+
+      if (role && ["super_admin", "admin", "teacher", "student", "parent"].includes(role)) {
+        return await getDemoUser(role);
+      }
+    }
+
+    return null;
   } catch {
     return null;
   }

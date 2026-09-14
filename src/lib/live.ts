@@ -13,6 +13,7 @@ import { and, asc, eq } from "drizzle-orm";
 import {
   mergeSettings,
   type LiveQuestion,
+  type LivePaletteItem,
   type Snapshot,
 } from "./quiz-settings";
 
@@ -24,7 +25,7 @@ export {
   computePoints,
   generatePin,
 } from "./quiz-settings";
-export type { QuizSettings, LiveQuestion, Snapshot } from "./quiz-settings";
+export type { QuizSettings, LiveQuestion, Snapshot, LivePaletteItem } from "./quiz-settings";
 
 function normalizeJsonArray<T = unknown>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
@@ -173,10 +174,18 @@ export async function buildSnapshot(pin: string, viewerPlayerId?: number): Promi
       and(eq(playerAnswers.sessionId, session.id), eq(playerAnswers.questionIndex, session.currentIndex)),
     );
   const tally = new Array<number>(current?.options.length ?? 0).fill(0);
-  const outcomes: Record<number, { correct: boolean; points: number; answer: (string | number)[] }> = {};
+  const outcomes: Record<
+    number,
+    { correct: boolean; points: number; answer: (string | number)[]; responseMs?: number }
+  > = {};
   for (const a of answers) {
     const picked = (a.answer as (string | number)[]) ?? [];
-    outcomes[a.playerId] = { correct: a.correct, points: a.points, answer: picked };
+    outcomes[a.playerId] = {
+      correct: a.correct,
+      points: a.points,
+      answer: picked,
+      responseMs: a.responseMs ?? undefined,
+    };
     for (const v of picked) {
       const idx = Number(v);
       if (Number.isInteger(idx) && idx >= 0 && idx < tally.length) tally[idx] += 1;
@@ -192,6 +201,67 @@ export async function buildSnapshot(pin: string, viewerPlayerId?: number): Promi
       .limit(1);
     theme = t[0]?.config ?? null;
   }
+
+  // Load all session answers to calculate Question Palette struggle metrics for teacher/host
+  const allAnswers = await db
+    .select({
+      questionIndex: playerAnswers.questionIndex,
+      correct: playerAnswers.correct,
+      responseMs: playerAnswers.responseMs,
+    })
+    .from(playerAnswers)
+    .where(eq(playerAnswers.sessionId, session.id));
+
+  const statsByQuestion: Record<number, { answeredCount: number; correctCount: number; totalMs: number }> = {};
+  for (const a of allAnswers) {
+    if (!statsByQuestion[a.questionIndex]) {
+      statsByQuestion[a.questionIndex] = { answeredCount: 0, correctCount: 0, totalMs: 0 };
+    }
+    const s = statsByQuestion[a.questionIndex];
+    s.answeredCount += 1;
+    if (a.correct) s.correctCount += 1;
+    s.totalMs += (a.responseMs ?? 0);
+  }
+
+  const palette: LivePaletteItem[] = qs.map((q, i) => {
+    const stat = statsByQuestion[i] || { answeredCount: 0, correctCount: 0, totalMs: 0 };
+    const answered = stat.answeredCount;
+    const correct = stat.correctCount;
+    const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : null;
+    const avgResponseMs = answered > 0 ? Math.round(stat.totalMs / answered) : null;
+    const isCurrent = i === session.currentIndex;
+    // Considered struggling if at least 1 student answered and accuracy is under 50%
+    const isStruggling = answered >= 1 && (correct / answered) < 0.5;
+
+    let qStatus: "upcoming" | "active" | "locked" | "revealed" | "completed" = "upcoming";
+    if (isCurrent) {
+      if (session.state === "question_active") qStatus = "active";
+      else if (session.state === "answer_locked") qStatus = "locked";
+      else if (["answer_reveal", "score_update", "leaderboard"].includes(session.state)) qStatus = "revealed";
+      else if (session.state === "quiz_complete") qStatus = "completed";
+      else qStatus = "active";
+    } else if (i < session.currentIndex || answered > 0) {
+      qStatus = "completed";
+    } else {
+      qStatus = "upcoming";
+    }
+
+    return {
+      index: i,
+      id: q.id,
+      text: q.text,
+      type: q.type,
+      difficulty: q.difficulty,
+      marks: q.marks,
+      timer: q.timer,
+      answeredCount: answered,
+      correctCount: correct,
+      accuracy,
+      avgResponseMs,
+      isStruggling,
+      status: qStatus,
+    };
+  });
 
   return {
     session: {
@@ -243,5 +313,6 @@ export async function buildSnapshot(pin: string, viewerPlayerId?: number): Promi
         ? (outcomes[viewerPlayerId] ? { [viewerPlayerId]: outcomes[viewerPlayerId] } : {})
         : outcomes
       : {},
+    palette: viewerPlayerId ? undefined : palette,
   };
 }

@@ -34,12 +34,20 @@ function QuizzesInner() {
   const { push } = useToast();
   const [rows, setRows] = useState<Quiz[]>([]);
   const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [liveId, setLiveId] = useState<number | null>(null);
   const [mode, setMode] = useState(params.get("mode") ?? "live");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState(30);
   const [classId, setClassId] = useState("");
   const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    if (params.get("new") === "1") {
+      setOpen(true);
+    }
+  }, [params]);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/quizzes?mine=1");
@@ -68,23 +76,37 @@ function QuizzesInner() {
   };
 
   const create = async () => {
-    const data = await post({
-      op: "create",
-      data: { title: title || "নতুন কুইজ", description, mode, durationMinutes: duration, classId: classId ? Number(classId) : null },
-    });
-    if (data?.id) router.push(`/teacher/quizzes/${data.id}`);
+    setCreating(true);
+    try {
+      const data = await post({
+        op: "create",
+        data: { title: title || "নতুন কুইজ", description, mode, durationMinutes: duration, classId: classId ? Number(classId) : null },
+      });
+      if (data?.id) {
+        push("কুইজ তৈরি হয়েছে! প্রশ্ন যোগ করুন।", "success");
+        router.push(`/teacher/quizzes/${data.id}`);
+      }
+    } finally {
+      setCreating(false);
+    }
   };
 
   const startLive = async (quizId: number) => {
-    const res = await fetch("/api/live", {
-      method: "POST",
-      cache: "no-store",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "create", quizId }),
-    });
-    const data = await res.json();
-    if (!res.ok) return push(data.error ?? "ব্যর্থ", "error");
-    router.push(`/host/${data.pin}`);
+    setLiveId(quizId);
+    try {
+      const res = await fetch("/api/live", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "create", quizId }),
+      });
+      const data = await res.json();
+      if (!res.ok) return push(data.error ?? "ব্যর্থ", "error");
+      push(`পিন ${data.pin} লাইভ সেশন প্রস্তুত!`, "success");
+      router.push(`/host/${data.pin}`);
+    } finally {
+      setLiveId(null);
+    }
   };
 
   return (
@@ -148,9 +170,14 @@ function QuizzesInner() {
                     <Link href={`/teacher/quizzes/${q.id}`}>
                       <Button size="sm" variant="outline">সম্পাদনা</Button>
                     </Link>
-                    {q.mode === "live" ? (
-                      <Button size="sm" onClick={() => startLive(q.id)}>লাইভ</Button>
-                    ) : null}
+                    <Button
+                      size="sm"
+                      loading={liveId === q.id}
+                      onClick={() => startLive(q.id)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      📡 লাইভ
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -180,11 +207,11 @@ function QuizzesInner() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="নতুন কুইজ / পরীক্ষা"
+        title="নতুন কুইজ / পরীক্ষা তৈরি করুন"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>বাতিল</Button>
-            <Button onClick={create}>তৈরি করুন</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={creating}>বাতিল</Button>
+            <Button onClick={create} loading={creating}>তৈরি করুন</Button>
           </>
         }
       >

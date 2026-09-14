@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge, Button, Card, Modal, useToast, cx } from "@/components/ui";
 import { CinematicIntro, Leaderboard, QuizTimer } from "@/components/quiz";
 import { Celebration, ThemeStage, ThemedAnswers } from "@/components/theme-stage";
@@ -9,14 +10,21 @@ import { AnswerDistribution } from "@/components/reveal";
 import { mergeTemplate } from "@/lib/theme";
 import { liveAction, useLiveSession } from "@/lib/useLive";
 import { FullscreenButton, useClassroomSounds } from "@/components/live-effects";
+import { LiveQuestionPalette } from "@/components/live-question-palette";
+import { LiveSessionPacingTimer } from "@/components/live-session-timer";
+import { QuizPlate } from "@/components/quiz-plate";
 
 export default function HostPage({ params }: { params: Promise<{ pin: string }> }) {
+  const router = useRouter();
   const { pin } = use(params);
-  const { snapshot, status, reactions } = useLiveSession(pin);
+  const { snapshot, status, reactions, isDeleted } = useLiveSession(pin);
   const { push } = useToast();
   const [intro, setIntro] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [showPaletteModal, setShowPaletteModal] = useState(false);
   const [busy, setBusy] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [presentation, setPresentation] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -49,6 +57,25 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
     if (state === "answer_reveal") sounds.reveal();
     if (state === "quiz_complete") sounds.complete();
   }, [state]);
+
+  useEffect(() => {
+    if (isDeleted && !deleting) {
+      push("এই সেশনটি মুছে ফেলা হয়েছে", "info");
+      router.push("/teacher/live");
+    }
+  }, [isDeleted, deleting, router, push]);
+
+  const handleDeleteSession = async () => {
+    setDeleting(true);
+    try {
+      await liveAction({ action: "delete", pin });
+      push("লাইভ সেশন ও এর সমস্ত ডেটা মুছে ফেলা হয়েছে ✅", "success");
+      router.push("/teacher/live");
+    } catch (err) {
+      push(err instanceof Error ? err.message : "সেশন মুছতে সমস্যা হয়েছে", "error");
+      setDeleting(false);
+    }
+  };
 
   const control = async (command: string, extra: Record<string, unknown> = {}) => {
     setBusy(command);
@@ -115,6 +142,21 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
           <Link href={`/teacher/controller/${pin}`}>
             <Button variant="outline" size="sm">📱 মোবাইল কন্ট্রোল</Button>
           </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPaletteModal(true)}
+            className="relative font-bold"
+            title="প্রশ্ন প্যালেট ও রিয়েল-টাইম বিশ্লেষণ দেখুন"
+          >
+            🗺️ প্রশ্ন প্যালেট
+            {snapshot?.palette?.some((p) => p.isStruggling) && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+              </span>
+            )}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => { setPresentation((v) => !v); sounds.unlock(); }}>{presentation ? "🪟 সাধারণ" : "🎬 Presentation"}</Button>
           <Button variant="outline" size="sm" onClick={() => { setSoundOn((v) => !v); if (!soundOn) sounds.unlock(); }}>{soundOn ? "🔊" : "🔇"}</Button>
           <FullscreenButton className="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20" />
@@ -203,17 +245,48 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
 
               {q && state !== "lobby" && state !== "quiz_complete" ? (
                 <div className="mt-4">
+                  {/* Visual Timer & Countdown Gauge for Active Question */}
+                  <div className="mb-4">
+                    <LiveSessionPacingTimer
+                      endsAt={snapshot!.session.endsAt}
+                      totalSeconds={q.timer}
+                      paused={snapshot!.session.paused}
+                      questionIndex={snapshot!.session.currentIndex}
+                      totalQuestions={snapshot!.session.total}
+                      answeredCount={answeredCount}
+                      totalPlayers={totalPlayers}
+                      revealed={q.revealed}
+                      onExtend={(s) => control("extend", { seconds: s })}
+                      onTogglePause={() => control(snapshot?.session.paused ? "resume" : "pause")}
+                      onReveal={() => control("reveal")}
+                    />
+                  </div>
+
                   {presentation && q ? (
                     <div className="mb-4 flex items-center justify-between gap-4 rounded-2xl bg-slate-950 px-4 py-3 text-white shadow-xl">
                       <span className="text-sm font-bold sm:text-lg">প্রশ্ন {snapshot!.session.currentIndex + 1} / {snapshot!.session.total}</span>
                       <span className="text-sm font-black tabular-nums sm:text-lg">{answeredCount}/{totalPlayers} উত্তর</span>
                     </div>
                   ) : null}
-                  <p className={`${presentation ? "text-3xl sm:text-5xl" : "text-lg"} font-black leading-tight`}>{q.text}</p>
-                  <div className="mt-3">
+                  <div className="mt-4">
+                    <QuizPlate
+                      plateStyle={settings?.plateStyle || "auto"}
+                      questionIndex={snapshot!.session.currentIndex}
+                      totalQuestions={snapshot!.session.total}
+                      questionText={q.text}
+                      options={q.options}
+                      type={q.type}
+                      reveal={q.revealed}
+                      correct={q.correct}
+                      hint={q.hint}
+                      explanation={q.explanation}
+                      mode="host"
+                      disabled={true}
+                    />
+
                     {q.revealed && snapshot?.tally?.length ? (
-                      <>
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                      <div className="mt-4 rounded-2xl bg-white/95 p-4 text-slate-900 shadow-xl">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
                           <span>উত্তরের বিশ্লেষণ</span>
                           <span>{snapshot.answeredCount} জন উত্তর দিয়েছে</span>
                         </div>
@@ -223,19 +296,8 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
                           correct={q.correct ?? []}
                           palette={theme.answerPalette}
                         />
-                      </>
-                    ) : (
-                      <ThemedAnswers
-                        config={theme}
-                        options={q.options}
-                        type={q.type}
-                        selected={[]}
-                        reveal={q.revealed}
-                        correct={q.correct}
-                        disabled
-                        onSelect={() => {}}
-                      />
-                    )}
+                      </div>
+                    ) : null}
                   </div>
                   {q.revealed ? (
                     <div className="anim-fade mt-3 grid grid-cols-3 gap-2">
@@ -289,6 +351,13 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
                       <Link href="/teacher/live">
                         <Button>নতুন সেশন</Button>
                       </Link>
+                      <Button
+                        variant="danger"
+                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                        onClick={() => setDeleteConfirmOpen(true)}
+                      >
+                        🗑️ সেশন ডিলিট
+                      </Button>
                     </div>
                   </div>
                 </>
@@ -311,7 +380,7 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
                 <Button variant="outline" onClick={() => control("skip")}>⏭ স্কিপ</Button>
                 <Button onClick={() => control("next")} loading={busy === "next"}>➡️ পরবর্তী</Button>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 {[5, 10, 30].map((s) => (
                   <Button key={s} size="sm" variant="ghost" onClick={() => control("extend", { seconds: s })}>
                     +{s}s
@@ -329,11 +398,52 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
                 <Button size="sm" variant="danger" onClick={() => control("end")}>
                   🛑 শেষ করুন
                 </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  🗑️ সেশন ডিলিট
+                </Button>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-slate-600">🎨 কুইজ প্লেট থিম:</span>
+                  <select
+                    value={settings?.plateStyle || "auto"}
+                    onChange={(e) => control("setPlateStyle", { plateStyle: e.target.value })}
+                    className="rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  >
+                    <option value="auto">🎲 অটোমেটিক (প্রতি প্রশ্নে আলাদা স্টাইল)</option>
+                    <option value="neon_sunset">🌅 নিয়ন সানসেট ও প্রশ্নবোধক</option>
+                    <option value="royal_starlight">⭐ রয়্যাল স্ট্রিট ও গোল্ডেন স্টার</option>
+                    <option value="cyber_synthwave">⚡ সাইবার সিন্থওয়েভ ডুয়াল নিয়ন</option>
+                    <option value="clay_morphism">🧊 থ্রি-ডি ক্লেমরফিজম সফট ট্রে</option>
+                    <option value="golden_royale">👑 গোল্ডেন রয়্যাল চ্যাম্পিয়ন</option>
+                    <option value="emerald_matrix">🟢 এমারেল্ড সাইবার ম্যাট্রিক্স</option>
+                    <option value="cosmic_aurora">🌌 কসমিক অরোরা গ্যালাক্সি</option>
+                    <option value="candy_pop">🍬 ক্যান্ডি পপ ভাইব্রেন্ট থ্রি-ডি</option>
+                  </select>
+                </div>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {settings?.plateStyle === "auto" || !settings?.plateStyle
+                    ? "✨ সার্ভার প্রতি প্রশ্নের জন্য স্বয়ংক্রিয় ভিন্ন ভিন্ন প্লেট নির্বাচন করছে"
+                    : "🔒 নির্বাচিত নির্দিষ্ট প্লেট সব প্রশ্নে প্রযোজ্য"}
+                </span>
               </div>
             </Card>
           </div>
 
           <div className={`${presentation ? "hidden" : "space-y-4"}`}>
+            <LiveQuestionPalette
+              palette={snapshot?.palette}
+              currentIndex={snapshot?.session.currentIndex ?? 0}
+              totalPlayers={snapshot?.players.length ?? 0}
+              onJump={(index) => control("jump", { index })}
+            />
+
             <Card className="relative overflow-hidden bg-white/95 text-slate-900">
               <p className="mb-2 text-xs font-bold uppercase text-slate-400">
                 অংশগ্রহণকারী ({snapshot?.players.length ?? 0})
@@ -420,6 +530,49 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
           <p className="mt-3 text-sm font-bold">{joinUrl}</p>
           <p className="mt-1 text-3xl font-black tracking-[0.2em]">{pin}</p>
         </div>
+      </Modal>
+
+      <Modal open={deleteConfirmOpen} onClose={() => !deleting && setDeleteConfirmOpen(false)} title="লাইভ সেশন মুছে ফেলা">
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-2xl bg-rose-50 p-4 text-rose-900 border border-rose-200">
+            <span className="text-3xl">⚠️</span>
+            <div>
+              <p className="text-sm font-black text-rose-900">আপনি কি নিশ্চিত এই লাইভ সেশন ডিলিট করবেন?</p>
+              <p className="mt-1 text-xs leading-relaxed text-rose-700">
+                এই সেশনটি ডিলিট করলে এর সকল অংশগ্রহণকারী, জমা দেওয়া উত্তর এবং সমস্ত তাৎক্ষণিক ফলাফল ডেটাবেজ থেকে চিরতরে মুছে যাবে। এই কাজটি আর ফিরিয়ে আনা যাবে না।
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={deleting}>
+              বাতিল
+            </Button>
+            <Button
+              variant="danger"
+              className="bg-rose-600 hover:bg-rose-700 text-white font-black"
+              loading={deleting}
+              onClick={handleDeleteSession}
+            >
+              হ্যাঁ, সম্পূর্ণ ডিলিট করুন
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={showPaletteModal}
+        onClose={() => setShowPaletteModal(false)}
+        title="প্রশ্ন প্যালেট ও রিয়েল-টাইম অংশগ্রহণ"
+      >
+        <LiveQuestionPalette
+          palette={snapshot?.palette}
+          currentIndex={snapshot?.session.currentIndex ?? 0}
+          totalPlayers={snapshot?.players.length ?? 0}
+          onJump={(index) => {
+            control("jump", { index });
+            setShowPaletteModal(false);
+          }}
+        />
       </Modal>
     </ThemeStage>
   );

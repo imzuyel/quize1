@@ -1,10 +1,25 @@
 import { db } from "@/db";
-import { questions, quizPresets, quizQuestions, quizSections, quizzes } from "@/db/schema";
+import {
+  examAnswers,
+  examAttempts,
+  playerAnswers,
+  questions,
+  quizPresets,
+  quizQuestions,
+  quizResults,
+  quizSections,
+  quizSessions,
+  quizzes,
+  sessionPlayers,
+  sessionReactions,
+  sessionTeams,
+} from "@/db/schema";
 import { fail, guard, ok } from "@/lib/api";
 import { isAdmin, isStaff, requireUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { DEFAULT_SETTINGS, EXAM_SETTINGS, loadQuizQuestions } from "@/lib/live";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { clearScheduled, publish } from "@/lib/realtime";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +49,11 @@ export async function GET(req: Request) {
     const mine = url.searchParams.get("mine");
     const filters = [];
     if (mode) filters.push(eq(quizzes.mode, mode));
-    if (mine === "1" && isStaff(user.role)) filters.push(eq(quizzes.createdBy, user.id));
-    if (!isStaff(user.role)) filters.push(eq(quizzes.status, "published"));
+    if (mine === "1" && isStaff(user.role)) {
+      filters.push(or(eq(quizzes.createdBy, user.id), eq(quizzes.status, "published")));
+    } else if (!isStaff(user.role)) {
+      filters.push(eq(quizzes.status, "published"));
+    }
     const rows = await db
       .select({
         id: quizzes.id,
@@ -138,6 +156,29 @@ export async function POST(req: Request) {
         const access = await canManageQuiz(body.id);
         if (!access.quiz) return fail("কুইজ পাওয়া যায়নি", 404);
         if (!access.ok) return fail("এই কুইজ মুছার অনুমতি নেই", 403);
+
+        // Find and delete any active or past live sessions for this quiz
+        const sessions = await db.select().from(quizSessions).where(eq(quizSessions.quizId, body.id));
+        for (const s of sessions) {
+          clearScheduled(`reveal:${s.pin}`);
+          publish(`session:${s.pin}`, "deleted", { pin: s.pin, deleted: true, message: "কুইজটি ডিলিট করা হয়েছে" });
+          await db.delete(playerAnswers).where(eq(playerAnswers.sessionId, s.id));
+          await db.delete(sessionReactions).where(eq(sessionReactions.sessionId, s.id));
+          await db.delete(sessionPlayers).where(eq(sessionPlayers.sessionId, s.id));
+          await db.delete(sessionTeams).where(eq(sessionTeams.sessionId, s.id));
+          await db.delete(quizResults).where(eq(quizResults.sessionId, s.id));
+        }
+        await db.delete(quizSessions).where(eq(quizSessions.quizId, body.id));
+        await db.delete(quizResults).where(eq(quizResults.quizId, body.id));
+
+        // Delete any exam attempts and answers
+        const attempts = await db.select({ id: examAttempts.id }).from(examAttempts).where(eq(examAttempts.quizId, body.id));
+        if (attempts.length > 0) {
+          const attemptIds = attempts.map((a) => a.id);
+          await db.delete(examAnswers).where(inArray(examAnswers.attemptId, attemptIds));
+          await db.delete(examAttempts).where(eq(examAttempts.quizId, body.id));
+        }
+
         await db.delete(quizQuestions).where(eq(quizQuestions.quizId, body.id));
         await db.delete(quizSections).where(eq(quizSections.quizId, body.id));
         await db.delete(quizzes).where(eq(quizzes.id, body.id));

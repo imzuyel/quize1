@@ -21,6 +21,7 @@ type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger" | "gold" | "outline";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
+  isLoading?: boolean;
   icon?: ReactNode;
   block?: boolean;
 };
@@ -29,6 +30,7 @@ export function Button({
   variant = "primary",
   size = "md",
   loading,
+  isLoading,
   icon,
   block,
   className,
@@ -36,8 +38,9 @@ export function Button({
   disabled,
   ...rest
 }: BtnProps) {
+  const isSpinning = Boolean(loading || isLoading);
   const base =
-    "inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed select-none focus-visible:ring-4 focus-visible:ring-indigo-200";
+    "inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none focus-visible:ring-4 focus-visible:ring-indigo-200";
   const sizes = {
     sm: "text-sm px-3 py-2 min-h-[38px]",
     md: "text-sm px-4 py-2.5 min-h-[44px]",
@@ -54,10 +57,10 @@ export function Button({
   return (
     <button
       className={cx(base, sizes, variants, block && "w-full", className)}
-      disabled={disabled || loading}
+      disabled={disabled || isSpinning}
       {...rest}
     >
-      {loading ? <Spinner size={16} /> : icon}
+      {isSpinning ? <Spinner size={16} /> : icon}
       {children}
     </button>
   );
@@ -573,11 +576,11 @@ export function Confetti({ count = 60 }: { count?: number }) {
     () =>
       Array.from({ length: count }).map((_, i) => ({
         id: i,
-        left: Math.random() * 100,
-        delay: Math.random() * 1.2,
-        dur: 2.4 + Math.random() * 1.8,
+        left: ((i * 37 + 13) % 100),
+        delay: ((i * 17) % 12) * 0.1,
+        dur: 2.4 + ((i * 19) % 18) * 0.1,
         color: ["#0f7b6c", "#f0b429", "#e2574c", "#2f80ed", "#12a08c"][i % 5],
-        size: 6 + Math.random() * 8,
+        size: 6 + ((i * 23) % 8),
       })),
     [count],
   );

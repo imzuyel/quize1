@@ -1,8 +1,9 @@
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { createSession, getCurrentUser } from "@/lib/auth";
+import { createSession, getCurrentUser, DEMO_ROLE_COOKIE } from "@/lib/auth";
 import { demoSeedAllowed, seedDatabase } from "@/lib/seed";
 import { and, asc, eq } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export async function GET(req: Request) {
 
   if (process.env.DEMO_MODE === "false") return goto("/login");
 
+  const requestedExplicitRole = url.searchParams.has("role");
   const wanted = ["super_admin", "admin", "teacher", "student", "parent"].includes(role)
     ? role
     : "student";
@@ -64,11 +66,12 @@ export async function GET(req: Request) {
 
   const existing = await getCurrentUser();
   if (existing) {
-    const ok =
+    const isMatchingRole =
       existing.role === wanted ||
-      (wanted === "admin" && existing.role === "super_admin") ||
-      !next;
-    if (ok) return goto(target);
+      (wanted === "admin" && existing.role === "super_admin");
+    if (requestedExplicitRole ? isMatchingRole : (isMatchingRole || !next)) {
+      return goto(target);
+    }
   }
 
   let user = await findUser(wanted);
@@ -86,5 +89,11 @@ export async function GET(req: Request) {
   if (!user) return goto("/?demo=unavailable");
 
   await createSession(user.id);
+  const store = await cookies();
+  store.set(DEMO_ROLE_COOKIE, wanted, {
+    path: "/",
+    sameSite: "none",
+    secure: true,
+  });
   return goto(target);
 }

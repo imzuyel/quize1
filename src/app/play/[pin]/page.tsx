@@ -10,6 +10,8 @@ import { AnswerFeedback, ScorePop, type RevealKind } from "@/components/reveal";
 import { mergeTemplate } from "@/lib/theme";
 import { liveAction, useLiveSession } from "@/lib/useLive";
 import { useClassroomSounds } from "@/components/live-effects";
+import { QuizResultFeedbackCard } from "@/components/quiz-result-feedback-card";
+import { QuizPlate } from "@/components/quiz-plate";
 
 const SINGLE_CHOICE = ["mcq", "true_false", "image_choice", "scenario", "case_based", "hotspot", "audio", "video", "odd_one_out", "analogy"];
 function isSingleChoice(type: string) {
@@ -18,7 +20,7 @@ function isSingleChoice(type: string) {
 
 export default function PlayPage({ params }: { params: Promise<{ pin: string }> }) {
   const { pin } = use(params);
-  const { snapshot, status, reactions } = useLiveSession(pin);
+  const { snapshot, status, reactions, isDeleted, deletedMessage } = useLiveSession(pin);
   const { push } = useToast();
   const [playerId, setPlayerId] = useState<number | null>(null);
   const [answerValue, setAnswerValue] = useState<(string | number)[]>([]);
@@ -57,8 +59,35 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
   }, [snapshot?.session.currentIndex]);
 
   useEffect(() => {
-    if (state === "quiz_complete") sounds.complete();
-  }, [state]);
+    if (state === "quiz_complete") {
+      sounds.complete();
+      if (me && snapshot) {
+        const ranked = [...snapshot.players].sort((a, b) => b.score - a.score);
+        const myRankIdx = ranked.findIndex((p) => p.id === playerId);
+        const rank = myRankIdx !== -1 ? myRankIdx + 1 : 1;
+        const accuracy = me.answeredCount
+          ? Math.round((me.correctCount / me.answeredCount) * 100)
+          : 0;
+        try {
+          localStorage.setItem(
+            "pg_last_completed_quiz",
+            JSON.stringify({
+              pin,
+              quizTitle: snapshot.quiz.title || "লাইভ কুইজ",
+              score: me.score,
+              rank,
+              totalPlayers: snapshot.players.length,
+              accuracy,
+              correctCount: me.correctCount,
+              totalQuestions: snapshot.session.total || snapshot.players.length,
+              answeredCount: me.answeredCount,
+              completedAt: Date.now(),
+            }),
+          );
+        } catch {}
+      }
+    }
+  }, [state, me, snapshot, pin, playerId, sounds]);
 
   const answered = submittedIndex === snapshot?.session.currentIndex || Boolean(playerId && snapshot?.answeredBy.includes(playerId));
   const outcome = playerId ? snapshot?.outcomes?.[playerId] : undefined;
@@ -97,7 +126,7 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
     }
   };
 
-  const usePower = async (kind: string) => {
+  const applyPower = async (kind: string) => {
     try {
       const res = (await liveAction({ action: "powerup", pin, playerId, kind })) as { hidden?: number[] };
       if (res.hidden?.length) setHidden(res.hidden);
@@ -111,6 +140,34 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
     () => Object.entries(settings?.powerUps ?? {}).filter(([, v]) => v).map(([k]) => k),
     [settings],
   );
+
+  if (isDeleted) {
+    return (
+      <div className="pg-hero-bg grid min-h-screen place-items-center p-6 text-center text-white">
+        <div className="max-w-md w-full rounded-3xl border border-white/20 bg-slate-900/90 p-8 backdrop-blur shadow-2xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/20 text-4xl border border-rose-500/30">
+            🗑️
+          </div>
+          <h2 className="mt-5 text-2xl font-black text-rose-400">লাইভ সেশনটি ডিলিট করা হয়েছে</h2>
+          <p className="mt-2 text-sm text-slate-300">
+            {deletedMessage || "হোস্ট বা শিক্ষক এই লাইভ সেশনটি এবং এর যাবতীয় ডেটা মুছে ফেলেছেন।"}
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/join" className="flex-1">
+              <Button variant="gold" className="w-full font-black">
+                অন্য সেশনে যোগ দিন
+              </Button>
+            </Link>
+            <Link href="/student" className="flex-1">
+              <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10">
+                ড্যাশবোর্ড
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!playerId)
     return (
@@ -205,36 +262,76 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
               />
             </div>
 
-            <ThemedCard config={theme} animate animKey={q.id} className="p-4">
-              <p className="text-lg font-bold leading-snug">{q.text}</p>
-              {q.hint ? (
-                <details className="mt-2 text-xs text-slate-500">
-                  <summary className="cursor-pointer font-semibold">💡 হিন্ট দেখুন</summary>
-                  <p className="mt-1">{q.hint}</p>
-                </details>
-              ) : null}
-            </ThemedCard>
+            {isSingleChoice(q.type) || q.type === "multi_select" || q.type === "poll" ? (
+              <div className="space-y-3">
+                <QuizPlate
+                  plateStyle={settings?.plateStyle || "auto"}
+                  questionIndex={snapshot!.session.currentIndex}
+                  totalQuestions={snapshot!.session.total}
+                  questionText={q.text}
+                  options={q.options}
+                  type={q.type}
+                  selected={answerValue}
+                  hidden={hidden}
+                  reveal={q.revealed}
+                  correct={q.correct}
+                  hint={q.hint}
+                  explanation={q.explanation}
+                  mode="player"
+                  disabled={state !== "question_active" || answered}
+                  onSelect={(i) => {
+                    if (state !== "question_active" || answered) return;
+                    if (q.type === "multi_select" || q.type === "poll") {
+                      const prev = answerValue.map(Number);
+                      setAnswerValue(prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]);
+                    } else {
+                      setAnswerValue([i]);
+                    }
+                  }}
+                />
 
-            {answered && state === "question_active" ? (
-              <Card className="anim-pop bg-emerald-500 text-center text-white">
-                <p className="text-2xl">✅</p>
-                <p className="mt-1 font-extrabold">উত্তর জমা হয়েছে</p>
-                <p className="text-xs opacity-80">অন্যদের অপেক্ষায়…</p>
-              </Card>
+                {answered && state === "question_active" ? (
+                  <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-500/20 p-3 text-center text-white backdrop-blur shadow-lg ring-2 ring-emerald-400/40">
+                    <p className="text-xl">✅</p>
+                    <p className="font-extrabold text-sm">আপনার উত্তর জমা হয়েছে</p>
+                    <p className="text-xs text-emerald-200">বাকি শিক্ষার্থীদের উত্তরের অপেক্ষায়…</p>
+                  </div>
+                ) : null}
+              </div>
             ) : (
-              <QuestionInput
-                config={theme}
-                type={q.type}
-                text={q.text}
-                options={q.options}
-                value={answerValue}
-                hidden={hidden}
-                reveal={q.revealed}
-                correct={q.correct}
-                disabled={state !== "question_active"}
-                onChange={setAnswerValue}
-                onSubmit={state === "question_active" ? submit : undefined}
-              />
+              <>
+                <ThemedCard config={theme} animate animKey={q.id} className="p-4">
+                  <p className="text-lg font-bold leading-snug">{q.text}</p>
+                  {q.hint ? (
+                    <details className="mt-2 text-xs text-slate-500">
+                      <summary className="cursor-pointer font-semibold">💡 হিন্ট দেখুন</summary>
+                      <p className="mt-1">{q.hint}</p>
+                    </details>
+                  ) : null}
+                </ThemedCard>
+
+                {answered && state === "question_active" ? (
+                  <Card className="anim-pop bg-emerald-500 text-center text-white">
+                    <p className="text-2xl">✅</p>
+                    <p className="mt-1 font-extrabold">উত্তর জমা হয়েছে</p>
+                    <p className="text-xs opacity-80">অন্যদের অপেক্ষায়…</p>
+                  </Card>
+                ) : (
+                  <QuestionInput
+                    config={theme}
+                    type={q.type}
+                    text={q.text}
+                    options={q.options}
+                    value={answerValue}
+                    hidden={hidden}
+                    reveal={q.revealed}
+                    correct={q.correct}
+                    disabled={state !== "question_active"}
+                    onChange={setAnswerValue}
+                    onSubmit={state === "question_active" ? submit : undefined}
+                  />
+                )}
+              </>
             )}
 
             {!answered &&
@@ -262,7 +359,23 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
                   {outcome?.correct ? "সঠিক উত্তর!" : outcome ? "ভুল হয়েছে" : "সময় শেষ"}
                 </p>
                 {outcome?.correct ? (
-                  <p className="mt-1 text-lg font-black">+{Math.round(outcome.points)} পয়েন্ট</p>
+                  <div className="space-y-1">
+                    <p className="mt-1 text-2xl font-black">+{Math.round(outcome.points)} পয়েন্ট</p>
+                    {outcome.responseMs !== undefined ? (
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap text-xs font-bold text-emerald-100">
+                        <span>⚡ রেসপন্স টাইম: {(outcome.responseMs / 1000).toFixed(1)}s</span>
+                        {outcome.responseMs <= 2500 ? (
+                          <span className="rounded-full bg-amber-300 text-slate-950 px-2 py-0.5 text-[10px] font-black shadow-2xs">
+                            ⚡ লাইটনিং স্পিড বোনাস!
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-white/20 text-white px-2 py-0.5 text-[10px] font-semibold">
+                            🚀 দ্রুত উত্তরের বোনাস
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
                   <p className="mt-1 text-sm opacity-90">
                     {outcome ? "সঠিক উত্তরটি সবুজ রঙে দেখানো হয়েছে" : "এই প্রশ্নে উত্তর দেওয়া হয়নি"}
@@ -295,7 +408,7 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
                 {availablePowerUps.map((p) => (
                   <button
                     key={p}
-                    onClick={() => usePower(p)}
+                    onClick={() => applyPower(p)}
                     className="rounded-xl bg-white/15 px-3 py-2 text-xs font-bold"
                   >
                     {p === "double_points"
@@ -351,27 +464,57 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
         {state === "quiz_complete" ? (
           <>
             <Celebration config={theme} />
-            <Card className="anim-zoom bg-white/95 text-center text-slate-900">
-              <div className="text-5xl">🏆</div>
-              <h2 className="mt-2 text-xl font-extrabold">কুইজ সম্পন্ন!</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                আপনার স্কোর <b>{Math.round(me?.score ?? 0)}</b> · নির্ভুলতা{" "}
-                {me?.answeredCount ? Math.round((me.correctCount / me.answeredCount) * 100) : 0}%
-              </p>
-              <div className="mt-4">
-                <Leaderboard rows={snapshot!.players} limit={10} highlightId={playerId} />
-              </div>
-              {settings?.feedbackEnabled ? (
-                <Button className="mt-4" block onClick={() => setFeedbackOpen(true)}>
-                  ফিডব্যাক দিন
-                </Button>
-              ) : null}
-              <Link href="/student">
-                <Button variant="outline" className="mt-2" block>
-                  ড্যাশবোর্ডে যান
-                </Button>
-              </Link>
-            </Card>
+            <div className="space-y-4">
+              {(() => {
+                const ranked = [...(snapshot?.players ?? [])].sort((a, b) => b.score - a.score);
+                const myRankIdx = ranked.findIndex((p) => p.id === playerId);
+                const rank = myRankIdx !== -1 ? myRankIdx + 1 : 1;
+                const accuracy = me?.answeredCount
+                  ? Math.round((me.correctCount / me.answeredCount) * 100)
+                  : 0;
+
+                return (
+                  <QuizResultFeedbackCard
+                    result={{
+                      pin,
+                      quizTitle: snapshot?.quiz.title ?? "লাইভ কুইজ",
+                      score: me?.score ?? 0,
+                      rank,
+                      totalPlayers: snapshot?.players.length ?? 1,
+                      accuracy,
+                      correctCount: me?.correctCount ?? 0,
+                      totalQuestions: snapshot?.session.total ?? 0,
+                      answeredCount: me?.answeredCount ?? 0,
+                    }}
+                    showActions={false}
+                  />
+                );
+              })()}
+
+              <Card className="anim-zoom bg-white/95 text-center text-slate-900">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <p className="text-xs font-black uppercase tracking-wider text-slate-500">
+                    🏆 চূড়ান্ত লিডারবোর্ড
+                  </p>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">
+                    মোট {snapshot?.players.length ?? 0} জন
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <Leaderboard rows={snapshot!.players} limit={10} highlightId={playerId} />
+                </div>
+                {settings?.feedbackEnabled ? (
+                  <Button className="mt-4" block onClick={() => setFeedbackOpen(true)}>
+                    ফিডব্যাক দিন
+                  </Button>
+                ) : null}
+                <Link href="/student">
+                  <Button variant="outline" className="mt-2" block>
+                    🏠 শিক্ষার্থী হোম স্ক্রিনে যান
+                  </Button>
+                </Link>
+              </Card>
+            </div>
           </>
         ) : null}
       </div>

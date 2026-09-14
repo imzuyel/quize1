@@ -1,0 +1,6 @@
+{
+  "name": "PGTSC Quiz Arena",
+  "description": "Educational live quiz, exam, and question bank platform for Panchagarh Government Technical School and College.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
