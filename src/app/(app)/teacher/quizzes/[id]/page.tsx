@@ -77,6 +77,8 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const [publishing, setPublishing] = useState(false);
   const [liveStarting, setLiveStarting] = useState(false);
 
+  const [pdfSource, setPdfSource] = useState<{ id: number; title: string; originalFilename: string; pageCount: number; storagePath: string } | null>(null);
+
   const load = useCallback(async () => {
     const res = await fetch(`/api/quizzes?id=${quizId}`);
     if (!res.ok) return;
@@ -84,6 +86,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     setQuiz({ ...data.quiz, settings: { ...DEFAULT_SETTINGS, ...(data.quiz.settings ?? {}) } });
     setQuestions(data.questions);
     setRounds(data.rounds);
+    setPdfSource(data.pdfSource || null);
   }, [quizId]);
 
   useEffect(() => {
@@ -277,6 +280,19 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {pdfSource && (
+            <Badge tone="teal" className="gap-1.5 py-1 px-3">
+              <span>📚 সংযুক্ত PDF: <strong>{pdfSource.title}</strong></span>
+              <a
+                href={pdfSource.storagePath}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-teal-600 font-black ml-1"
+              >
+                দেখুন ↗
+              </a>
+            </Badge>
+          )}
           <Badge tone={quiz.status === "published" ? "green" : "slate"}>
             {quiz.status === "published" ? "🟢 প্রকাশিত" : "📝 ড্রাফট"}
           </Badge>

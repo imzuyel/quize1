@@ -40,19 +40,19 @@ export function Button({
 }: BtnProps) {
   const isSpinning = Boolean(loading || isLoading);
   const base =
-    "pg-btn-animated inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none focus-visible:ring-4 focus-visible:ring-indigo-200";
+    "inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none focus-visible:ring-4 focus-visible:ring-indigo-200";
   const sizes = {
     sm: "text-sm px-3 py-2 min-h-[38px]",
     md: "text-sm px-4 py-2.5 min-h-[44px]",
     lg: "text-base px-6 py-3.5 min-h-[52px]",
   }[size];
   const variants = {
-    primary: "bg-gradient-to-r from-[var(--pg-teal)] to-[#7978f4] text-white shadow-lg shadow-indigo-500/20 hover:-translate-y-0.5 hover:shadow-indigo-500/40 hover:brightness-105",
-    secondary: "bg-[var(--pg-deep)] text-white shadow-lg shadow-slate-900/15 hover:-translate-y-0.5 hover:bg-[#29376b] hover:shadow-slate-900/25",
-    gold: "bg-[var(--pg-gold)] text-[#3b2a06] shadow-lg shadow-amber-500/15 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-amber-500/25",
-    danger: "bg-[var(--pg-coral)] text-white shadow-lg shadow-rose-500/15 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-rose-500/25",
-    outline: "border border-[var(--pg-line)] bg-white/80 dark:bg-slate-800/80 text-[var(--pg-ink)] dark:text-slate-100 shadow-sm hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-50/60 dark:hover:bg-slate-700/60",
-    ghost: "text-[var(--pg-deep)] dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-slate-800",
+    primary: "bg-gradient-to-r from-[var(--pg-teal)] to-[#7978f4] text-white shadow-lg shadow-indigo-500/20 hover:-translate-y-0.5 hover:shadow-indigo-500/30",
+    secondary: "bg-[var(--pg-deep)] text-white shadow-lg shadow-slate-900/15 hover:-translate-y-0.5 hover:bg-[#29376b]",
+    gold: "bg-[var(--pg-gold)] text-[#3b2a06] shadow-lg shadow-amber-500/15 hover:-translate-y-0.5 hover:brightness-105",
+    danger: "bg-[var(--pg-coral)] text-white shadow-lg shadow-rose-500/15 hover:-translate-y-0.5 hover:brightness-105",
+    outline: "border border-[var(--pg-line)] bg-white/80 text-[var(--pg-ink)] shadow-sm hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50/60",
+    ghost: "text-[var(--pg-deep)] hover:bg-indigo-50",
   }[variant];
   return (
     <button
@@ -157,11 +157,11 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
 export function Toggle({
   checked,
   onChange,
-  label,
+  label = "",
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
-  label: string;
+  label?: string;
 }) {
   return (
     <button
@@ -193,25 +193,39 @@ export function Toggle({
 export function Badge({
   children,
   tone = "slate",
+  variant,
   className,
 }: {
   children: ReactNode;
-  tone?: "slate" | "teal" | "gold" | "coral" | "blue" | "green";
+  tone?: "slate" | "teal" | "gold" | "coral" | "blue" | "green" | "success" | "danger" | "warning" | "info";
+  variant?: "slate" | "teal" | "gold" | "coral" | "blue" | "green" | "success" | "danger" | "warning" | "info";
   className?: string;
 }) {
-  const tones = {
+  const chosen = variant || tone;
+  const mappedTone =
+    (
+      {
+        success: "green",
+        danger: "coral",
+        warning: "gold",
+        info: "blue",
+      } as const
+    )[chosen as "success" | "danger" | "warning" | "info"] || chosen;
+
+  const tones: Record<string, string> = {
     slate: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700",
     teal: "bg-teal-50 dark:bg-teal-950/60 text-teal-900 dark:text-teal-200 border border-teal-200/80 dark:border-teal-800/60",
     gold: "bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-800/60",
     coral: "bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 border border-rose-200/80 dark:border-rose-800/60",
     blue: "bg-sky-50 dark:bg-sky-950/60 text-sky-900 dark:text-sky-200 border border-sky-200/80 dark:border-sky-800/60",
     green: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border border-emerald-200/80 dark:border-emerald-800/60",
-  }[tone];
+  };
+
   return (
     <span
       className={cx(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold",
-        tones,
+        tones[mappedTone] || tones.slate,
         className,
       )}
     >
@@ -221,53 +235,22 @@ export function Badge({
 }
 
 /* ------------------------------- Progress -------------------------------- */
-export function Progress({
-  value,
-  tone = "teal",
-  showLabel,
-  label,
-  className,
-}: {
-  value: number;
-  tone?: "teal" | "gold" | "coral" | "blue" | "emerald" | "purple" | string;
-  showLabel?: boolean;
-  label?: string;
-  className?: string;
-}) {
-  const clamped = Math.max(0, Math.min(100, Number(value) || 0));
-  const gradientMap: Record<string, string> = {
-    teal: "linear-gradient(90deg, #0d9488, #14b8a6, #2dd4bf)",
-    gold: "linear-gradient(90deg, #d97706, #f59e0b, #fde047)",
-    coral: "linear-gradient(90deg, #e11d48, #f43f5e, #fda4af)",
-    blue: "linear-gradient(90deg, #2563eb, #3b82f6, #93c5fd)",
-    emerald: "linear-gradient(90deg, #059669, #10b981, #6ee7b7)",
-    purple: "linear-gradient(90deg, #7c3aed, #a855f7, #d8b4fe)",
-  };
-  const background = gradientMap[tone] ?? (tone === "gold" ? "var(--pg-gold)" : "var(--pg-teal)");
-
+export function Progress({ value, tone = "teal" }: { value: number; tone?: string }) {
   return (
-    <div className={cx("w-full space-y-1.5", className)}>
-      {(showLabel || label) && (
-        <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-          <span>{label ?? "অগ্রগতি"}</span>
-          <span className="tabular-nums text-teal-600 dark:text-teal-400 font-extrabold">{Math.round(clamped)}%</span>
-        </div>
-      )}
+    <div
+      className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200"
+      role="progressbar"
+      aria-valuenow={Math.round(value)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <div
-        className="pg-progress-track h-3 w-full border border-slate-200/80 dark:border-slate-700/60 p-0.5 shadow-inner"
-        role="progressbar"
-        aria-valuenow={Math.round(clamped)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div
-          className="pg-progress-fill shadow-sm"
-          style={{
-            width: `${clamped}%`,
-            background,
-          }}
-        />
-      </div>
+        className="h-full rounded-full transition-all duration-500"
+        style={{
+          width: `${Math.max(0, Math.min(100, value))}%`,
+          background: tone === "gold" ? "var(--pg-gold)" : "var(--pg-teal)",
+        }}
+      />
     </div>
   );
 }

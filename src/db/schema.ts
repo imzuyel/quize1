@@ -197,6 +197,7 @@ export const quizzes = mysqlTable(
     classId: int("class_id"),
     tradeId: int("trade_id"),
     templateId: int("template_id"),
+    pdfSourceId: int("pdf_source_id"),
     settings: json("settings").notNull().default({}),
     status: varchar("status", { length: 255 }).notNull().default("draft"), // draft | published | archived
     createdBy: int("created_by"),
@@ -208,6 +209,7 @@ export const quizzes = mysqlTable(
     index("quizzes_creator_idx").on(t.createdBy),
     index("quizzes_mode_idx").on(t.mode),
     index("quizzes_status_idx").on(t.status),
+    index("quizzes_pdf_source_idx").on(t.pdfSourceId),
   ],
 );
 
@@ -731,3 +733,74 @@ export const publicReviews = mysqlTable(
   },
   (t) => [index("public_reviews_status_idx").on(t.status), index("public_reviews_created_idx").on(t.createdAt)],
 );
+
+/* ------------------------------------------------------------------ */
+/* PDF Library System                                                 */
+/* ------------------------------------------------------------------ */
+
+export const pdfLibrary = mysqlTable(
+  "pdf_library",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    title: text("title").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    storagePath: text("storage_path").notNull(),
+    fileSize: int("file_size").notNull().default(0),
+    mimeType: varchar("mime_type", { length: 255 }).notNull().default("application/pdf"),
+    checksum: varchar("checksum", { length: 64 }).notNull(),
+    description: text("description"),
+    category: varchar("category", { length: 255 }),
+    subjectId: int("subject_id"),
+    classId: int("class_id"),
+    tags: json("tags").notNull().default([]),
+    status: varchar("status", { length: 255 }).notNull().default("active"), // active | inactive | archived
+    pageCount: int("page_count").notNull().default(0),
+    chars: int("chars").notNull().default(0),
+    pages: json("pages").notNull().default([]),
+    outline: json("outline").notNull().default([]),
+    uploadedBy: int("uploaded_by"),
+    createdAt: datetime("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [
+    index("pdf_checksum_idx").on(t.checksum),
+    index("pdf_uploader_idx").on(t.uploadedBy),
+    index("pdf_status_idx").on(t.status),
+    index("pdf_class_subject_idx").on(t.classId, t.subjectId),
+  ],
+);
+
+/* ------------------------------------------------------------------ */
+/* Dynamic Frontend Control System                                     */
+/* ------------------------------------------------------------------ */
+
+export const frontendSections = mysqlTable(
+  "frontend_sections",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    sectionKey: varchar("section_key", { length: 191 }).notNull(),
+    title: text("title"),
+    subtitle: text("subtitle"),
+    description: text("description"),
+    content: text("content"),
+    icon: text("icon"),
+    image: text("image"),
+    link: text("link"),
+    buttonText: text("button_text"),
+    buttonVisible: boolean("button_visible").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
+    displayOrder: int("display_order").notNull().default(0),
+    visibility: varchar("visibility", { length: 255 }).notNull().default("everyone"), // everyone | authenticated | roles
+    allowedRoles: json("allowed_roles").notNull().default([]),
+    startAt: datetime("start_at"),
+    endAt: datetime("end_at"),
+    createdAt: datetime("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (t) => [
+    uniqueIndex("frontend_sections_key_idx").on(t.sectionKey),
+    index("frontend_sections_order_idx").on(t.displayOrder),
+    index("frontend_sections_active_idx").on(t.isActive),
+  ],
+);
+

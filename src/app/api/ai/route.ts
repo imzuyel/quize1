@@ -1,6 +1,6 @@
 import { insertReturning, updateReturning } from "@/lib/mysql-returning";
 import { db } from "@/db";
-import { aiJobs, aiResults, documents, questions, quizQuestions, quizResults, quizzes } from "@/db/schema";
+import { aiJobs, aiResults, documents, pdfLibrary, questions, quizQuestions, quizResults, quizzes } from "@/db/schema";
 import { loadAiKeys } from "@/lib/ai-keys";
 import { getFeatures } from "@/lib/features";
 import { DEFAULT_SETTINGS, EXAM_SETTINGS } from "@/lib/quiz-settings";
@@ -300,7 +300,13 @@ export async function POST(req: Request) {
       case "generateFromDoc": {
         if (!isStaff(user.role)) return fail("Forbidden", 403);
         const docId = Number(body.documentId);
-        const row = (await db.select().from(documents).where(eq(documents.id, docId)).limit(1))[0];
+        let row = (await db.select().from(documents).where(eq(documents.id, docId)).limit(1))[0] as any;
+        if (!row) {
+          const pdfRow = (await db.select().from(pdfLibrary).where(eq(pdfLibrary.id, docId)).limit(1))[0];
+          if (pdfRow) {
+            row = { id: pdfRow.id, name: pdfRow.title, pages: pdfRow.pages, pageCount: pdfRow.pageCount };
+          }
+        }
         if (!row) return fail("ডকুমেন্ট পাওয়া যায়নি", 404);
         const pages = (row.pages as string[]) ?? [];
         const from = Math.max(1, Number(body.pageFrom ?? 1));

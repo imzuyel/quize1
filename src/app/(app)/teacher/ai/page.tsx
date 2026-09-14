@@ -110,6 +110,31 @@ function AIPageInner() {
     fetch("/api/ai").then(async (r) => r.ok && setProvider((await r.json()).provider));
     fetch("/api/ai?documents=1").then(async (r) => r.ok && setRecentDocs((await r.json()).documents));
     fetch("/api/quizzes?mine=1").then(async (r) => r.ok && setMyQuizzes((await r.json()).rows));
+
+    const pdfId = params.get("pdfId");
+    if (pdfId) {
+      setTab("document");
+      fetch(`/api/pdf-library?id=${pdfId}`)
+        .then(async (r) => {
+          if (!r.ok) return;
+          const data = await r.json();
+          if (data.pdf) {
+            setDoc({
+              documentId: data.pdf.id,
+              name: data.pdf.title,
+              pageCount: data.pdf.pageCount,
+              chars: data.pdf.chars,
+              method: "pdf_library",
+              outline: data.pdf.outline || [],
+              preview: data.pdf.pages || [],
+            });
+            setPageFrom(1);
+            setPageTo(data.pdf.pageCount || 1);
+          }
+        })
+        .catch(() => {});
+    }
+
     // Apply the teacher's saved defaults so they don't re-pick every time.
     fetch("/api/profile").then(async (r) => {
       if (!r.ok) return;

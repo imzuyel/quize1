@@ -2,6 +2,7 @@ import { db } from "@/db";
 import {
   examAnswers,
   examAttempts,
+  pdfLibrary,
   playerAnswers,
   questions,
   quizPresets,
@@ -38,10 +39,18 @@ export async function GET(req: Request) {
         .from(quizSections)
         .where(eq(quizSections.quizId, quiz.id))
         .orderBy(asc(quizSections.orderIndex));
+
+      let pdfSource = null;
+      if (quiz.pdfSourceId) {
+        const pdfRows = await db.select().from(pdfLibrary).where(eq(pdfLibrary.id, quiz.pdfSourceId)).limit(1);
+        if (pdfRows.length > 0) pdfSource = pdfRows[0];
+      }
+
       const isOwner = isStaff(user.role);
       return ok({
         quiz,
         rounds,
+        pdfSource,
         questions: isOwner ? list : list.map(({ correct: _c, explanation: _e, ...rest }) => { void _c; void _e; return rest; }),
       });
     }
@@ -62,6 +71,7 @@ export async function GET(req: Request) {
         mode: quizzes.mode,
         status: quizzes.status,
         classId: quizzes.classId,
+        pdfSourceId: quizzes.pdfSourceId,
         durationMinutes: quizzes.durationMinutes,
         scheduledAt: quizzes.scheduledAt,
         createdBy: quizzes.createdBy,
@@ -80,14 +90,14 @@ export async function GET(req: Request) {
 
 
 function sanitizeQuizPatch(input: Record<string, unknown>) {
-  const allowed = ["title", "description", "mode", "classId", "tradeId", "templateId", "settings", "status", "scheduledAt", "durationMinutes"] as const;
+  const allowed = ["title", "description", "mode", "classId", "tradeId", "templateId", "pdfSourceId", "settings", "status", "scheduledAt", "durationMinutes"] as const;
   const out: Record<string, unknown> = {};
   for (const key of allowed) if (input[key] !== undefined) {
     let value = input[key];
     if (key === "settings" && typeof value === "string") {
       try { value = JSON.parse(value); } catch { value = {}; }
     }
-    if (["classId", "tradeId", "templateId", "durationMinutes"].includes(key)) value = value == null || value === "" ? null : Number(value);
+    if (["classId", "tradeId", "templateId", "pdfSourceId", "durationMinutes"].includes(key)) value = value == null || value === "" ? null : Number(value);
     out[key] = value;
   }
   return out;
@@ -127,6 +137,7 @@ export async function POST(req: Request) {
             mode,
             classId: (body.data?.classId as number) ?? null,
             tradeId: (body.data?.tradeId as number) ?? null,
+            pdfSourceId: body.data?.pdfSourceId ? Number(body.data.pdfSourceId) : null,
             durationMinutes: (body.data?.durationMinutes as number) ?? 30,
             settings: (body.data?.settings as object) ?? (mode === "exam" ? EXAM_SETTINGS : DEFAULT_SETTINGS),
             createdBy: user.id,

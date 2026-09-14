@@ -75,13 +75,32 @@ export function QuestionTypeEditor({ value, onChange }: { value: ManualQuestionD
     {type === "true_false" ? <div className="grid grid-cols-2 gap-2">{["True", "False"].map((o, i) => <button type="button" key={o} onClick={() => patch({ options: ["True", "False"], correct: [i] })} className={cx("rounded-xl border p-4 font-black text-sm", selected(i) ? "border-teal-500 bg-teal-50 dark:bg-teal-950/70 text-teal-900 dark:text-teal-100 ring-2 ring-teal-400/40" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200")}>{selected(i) ? "✓ " : ""}{o}</button>)}</div> : null}
 
     {OPTION_TYPES.has(type) && type !== "true_false" ? <div className="space-y-2">
-      <div className="flex items-center justify-between"><p className="text-sm font-black text-slate-800 dark:text-slate-100">{type === "matching" ? "Pairs — Left → Right" : type === "ordering" ? "Items — সঠিক ক্রমে সাজাতে হবে" : "Options (অপশনসমূহ)"}</p><button type="button" onClick={addOption} className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50">+ Option যোগ করুন</button></div>
-      {value.options.map((o, i) => <div key={i} className="flex items-center gap-2">
-        {type !== "poll" && type !== "matching" && type !== "ordering" ? <input type="checkbox" checked={selected(i)} onChange={() => toggleCorrect(i)} className="h-4 w-4 rounded accent-teal-600 cursor-pointer" /> : null}
-        <Input value={o} onChange={e => setOption(i, e.target.value)} placeholder={type === "matching" ? "Left → Right" : `Option ${String.fromCharCode(65 + i)}`} />
-        {type === "ordering" && <span className="rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-300">Position {i + 1}</span>}
-        {value.options.length > 2 ? <button type="button" onClick={() => removeOption(i)} className="rounded-lg px-2 text-rose-500 hover:bg-rose-50 font-black">×</button> : null}
-      </div>)}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-black text-slate-800 dark:text-slate-100">
+          {type === "matching" ? "Pairs — Left → Right" : type === "ordering" ? "Items — সঠিক ক্রমে সাজাতে হবে" : "Options (অপশনসমূহ - টিকচিহ্ন দিয়ে সঠিক উত্তর চিহ্নিত করুন)"}
+        </p>
+        <button type="button" onClick={addOption} className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
+          + Option যোগ করুন
+        </button>
+      </div>
+      {value.options.map((o, i) => (
+        <div key={i} className={cx(
+          "flex items-center gap-2.5 p-2 rounded-xl border transition duration-150",
+          selected(i) && type !== "poll" && type !== "matching" && type !== "ordering"
+            ? "border-emerald-500 dark:border-emerald-600 bg-emerald-50/80 dark:bg-emerald-950/40"
+            : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90"
+        )}>
+          {type !== "poll" && type !== "matching" && type !== "ordering" ? (
+            <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+              <input type="checkbox" checked={selected(i)} onChange={() => toggleCorrect(i)} className="h-5 w-5 rounded accent-emerald-600 cursor-pointer" />
+              {selected(i) && <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md">✓ সঠিক</span>}
+            </label>
+          ) : null}
+          <Input value={o} onChange={e => setOption(i, e.target.value)} placeholder={type === "matching" ? "Left → Right" : `Option ${String.fromCharCode(65 + i)}`} className="bg-transparent border-slate-300 dark:border-slate-600" />
+          {type === "ordering" && <span className="rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0">Position {i + 1}</span>}
+          {value.options.length > 2 ? <button type="button" onClick={() => removeOption(i)} className="rounded-lg px-2 py-1 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-black text-sm">✕</button> : null}
+        </div>
+      ))}
       {type === "poll" ? <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Poll-এ কোনো correct answer থাকবে না।</p> : null}
       {type === "ordering" ? <p className="text-xs font-medium text-slate-600 dark:text-slate-400">উপরের তালিকার বর্তমান ক্রমই সঠিক ক্রম হিসেবে সংরক্ষিত হবে।</p> : null}
     </div> : null}
