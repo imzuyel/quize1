@@ -259,94 +259,136 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const theme = mergeTemplate(templates.find((t) => t.id === s.templateId)?.config);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-4 text-slate-900 dark:text-slate-100">
+      {/* Top Header Bar */}
+      <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/90 p-3 shadow-sm">
         <Link href="/teacher/quizzes">
-          <Button size="sm" variant="ghost">← ফিরে যান</Button>
+          <Button size="sm" variant="ghost" className="font-bold text-slate-700 dark:text-slate-200">
+            ← ফিরে যান
+          </Button>
         </Link>
-        <input
-          value={quiz.title}
-          onChange={(e) => setQuiz({ ...quiz, title: e.target.value })}
-          onBlur={() => post({ op: "update", id: quizId, data: { title: quiz.title } })}
-          className="min-w-0 flex-1 rounded-xl border border-transparent bg-transparent px-2 py-1 text-xl font-extrabold hover:border-[var(--pg-line)]"
-        />
-        <Badge tone={quiz.status === "published" ? "green" : "slate"}>{quiz.status}</Badge>
-        <Badge tone="blue">{questions.length} প্রশ্ন</Badge>
-        <Badge tone="gold">{totalMarks} মার্কস</Badge>
-        <Badge tone="teal">⏱ {formatDuration(totalTime + (s.examBufferSeconds ?? 0))}</Badge>
-        <Button
-          size="sm"
-          variant="outline"
-          loading={publishing}
-          onClick={async () => {
-            setPublishing(true);
-            try {
-              const res = await post({ op: "publish", id: quizId });
-              if (res) {
-                push("কুইজ প্রকাশিত হয়েছে! এবার শিক্ষার্থীরা অংশ নিতে পারবে।", "success");
-                load();
+        <div className="min-w-0 flex-1">
+          <input
+            value={quiz.title}
+            onChange={(e) => setQuiz({ ...quiz, title: e.target.value })}
+            onBlur={() => post({ op: "update", id: quizId, data: { title: quiz.title } })}
+            placeholder="কুইজের শিরোনাম..."
+            className="w-full rounded-xl border border-transparent bg-transparent px-2.5 py-1 text-lg sm:text-2xl font-black text-slate-900 dark:text-slate-100 hover:border-slate-300 dark:hover:border-slate-600 focus:border-teal-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-teal-500/20 outline-none transition"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={quiz.status === "published" ? "green" : "slate"}>
+            {quiz.status === "published" ? "🟢 প্রকাশিত" : "📝 ড্রাফট"}
+          </Badge>
+          <Badge tone="blue">{questions.length}টি প্রশ্ন</Badge>
+          <Badge tone="gold">{totalMarks} মার্কস</Badge>
+          <Badge tone="teal">⏱ {formatDuration(totalTime + (s.examBufferSeconds ?? 0))}</Badge>
+          
+          <Button
+            size="sm"
+            variant="outline"
+            loading={publishing}
+            className="font-bold text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-600"
+            onClick={async () => {
+              setPublishing(true);
+              try {
+                const res = await post({ op: "publish", id: quizId });
+                if (res) {
+                  push("কুইজ প্রকাশিত হয়েছে! এবার শিক্ষার্থীরা অংশ নিতে পারবে।", "success");
+                  load();
+                }
+              } finally {
+                setPublishing(false);
               }
-            } finally {
-              setPublishing(false);
-            }
-          }}
-        >
-          {quiz.status === "published" ? "পুনরায় প্রকাশ" : "প্রকাশ করুন"}
-        </Button>
-        <Button
-          size="sm"
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
-          loading={liveStarting}
-          onClick={async () => {
-            setLiveStarting(true);
-            try {
-              const res = await fetch("/api/live", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ action: "create", quizId }),
-              });
-              const data = await res.json();
-              if (res.ok) {
-                push(`পিন ${data.pin} প্রস্তুত! লাইভ কন্ট্রোল রুমে যাচ্ছেন...`, "success");
-                router.push(`/host/${data.pin}`);
-              } else {
-                push(data.error ?? "ব্যর্থ", "error");
+            }}
+          >
+            {quiz.status === "published" ? "🔄 পুনরায় প্রকাশ" : "🚀 প্রকাশ করুন"}
+          </Button>
+
+          <Button
+            size="sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-sm"
+            loading={liveStarting}
+            onClick={async () => {
+              setLiveStarting(true);
+              try {
+                const res = await fetch("/api/live", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ action: "create", quizId }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                  push(`পিন ${data.pin} প্রস্তুত! লাইভ কন্ট্রোল রুমে যাচ্ছেন...`, "success");
+                  router.push(`/host/${data.pin}`);
+                } else {
+                  push(data.error ?? "ব্যর্থ", "error");
+                }
+              } finally {
+                setLiveStarting(false);
               }
-            } finally {
-              setLiveStarting(false);
-            }
-          }}
-        >
-          📡 লাইভ শুরু
-        </Button>
-        <Link href={`/student/quizzes`}>
-          <Button size="sm" variant="ghost">শিক্ষার্থী ভিউ</Button>
-        </Link>
+            }}
+          >
+            📡 লাইভ শুরু
+          </Button>
+          <Link href={`/student/quizzes`}>
+            <Button size="sm" variant="ghost" className="font-bold text-slate-700 dark:text-slate-200">
+              👁️ শিক্ষার্থী ভিউ
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <Card className="overflow-hidden bg-gradient-to-r from-[var(--pg-deep)] to-[var(--pg-teal)] text-white">
+      {/* Quick Question Creator Banner */}
+      <Card className="overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-teal-950 text-white border-none shadow-md">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div><p className="text-lg font-black">প্রশ্ন যোগ করুন</p><p className="text-xs text-white/75">যেভাবে চান সেভাবেই quiz বানান — AI বাধ্যতামূলক নয়।</p></div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Button size="sm" variant="secondary" onClick={() => setManualOpen(true)}>✍️ Manual</Button>
-            <Button size="sm" variant="gold" onClick={() => setAiOpen(true)}>🤖 AI</Button>
-            <Button size="sm" variant="outline" onClick={() => setPasteOpen(true)}>📋 Copy-Paste</Button>
-            <Link href="/teacher/ai"><Button size="sm" variant="outline">📄 PDF</Button></Link>
+          <div>
+            <p className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+              <span>⚡ দ্রুত প্রশ্ন যোগ করুন</span>
+              <span className="text-xs font-bold text-teal-300 bg-teal-500/20 px-2 py-0.5 rounded-full border border-teal-400/30">
+                {questions.length}টি তৈরি আছে
+              </span>
+            </p>
+            <p className="text-xs sm:text-sm text-teal-100/90 mt-0.5 font-medium">
+              ম্যানুয়ালি লিখুন, এআই দিয়ে বানান, প্রশ্ন ব্যাংক থেকে আনুন অথবা টেক্সট কপি-পেস্ট করুন।
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" className="bg-white text-slate-900 hover:bg-slate-100 font-extrabold shadow-sm" onClick={() => setManualOpen(true)}>
+              ✍️ Manual প্রশ্ন
+            </Button>
+            <Button size="sm" className="bg-amber-400 hover:bg-amber-300 text-amber-950 font-black shadow-sm" onClick={() => setAiOpen(true)}>
+              🤖 AI প্রশ্ন জেনারেটর
+            </Button>
+            <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-bold" onClick={() => setPasteOpen(true)}>
+              📋 Copy-Paste
+            </Button>
+            <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-bold" onClick={() => setPickerOpen(true)}>
+              📚 প্রশ্ন ব্যাংক
+            </Button>
           </div>
         </div>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr_320px]">
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr_330px]">
         {/* ------------------------------ question list ------------------------------ */}
-        <Card padded={false} className="p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-bold uppercase text-slate-400">প্রশ্ন তালিকা</p>
-            <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={shuffleAll} title="এলোমেলো করুন">🔀</Button>
-              <Button size="sm" variant="gold" onClick={() => setAiOpen(true)} title="এআই দিয়ে প্রশ্ন যোগ করুন">✨ AI</Button>
-              <Button size="sm" onClick={() => setManualOpen(true)}>✍️ Manual</Button>
-              <Button size="sm" variant="outline" onClick={() => setPasteOpen(true)}>📋 Paste</Button>
-              <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>📚 Bank</Button>
+        <Card padded={false} className="p-3.5 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                প্রশ্ন তালিকা
+              </span>
+              <span className="rounded-full bg-teal-100 dark:bg-teal-950/80 px-2 py-0.5 text-[11px] font-black text-teal-800 dark:text-teal-200">
+                {questions.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="ghost" onClick={shuffleAll} title="এলোমেলো করুন" className="h-8 px-2 font-bold text-xs">
+                🔀
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setManualOpen(true)} className="h-8 px-2 font-bold text-xs">
+                + প্রশ্ন
+              </Button>
             </div>
           </div>
 
@@ -354,15 +396,15 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             value={listQuery}
             onChange={(e) => { setListQuery(e.target.value); setPage(0); }}
             placeholder="🔍 প্রশ্ন খুঁজুন…"
-            className="mb-2 py-2 text-xs"
+            className="py-2 text-xs font-medium"
           />
 
           {questions.length ? (
-            <div className="mb-2 grid grid-cols-3 gap-1 text-center">
+            <div className="grid grid-cols-3 gap-1.5 text-center">
               {(["easy", "medium", "hard"] as const).map((d) => (
-                <div key={d} className="rounded-lg bg-slate-50 px-1 py-1.5">
-                  <p className="text-sm font-black tabular-nums">{mix.byDiff[d] ?? 0}</p>
-                  <p className="text-[10px] text-slate-500">
+                <div key={d} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2 py-2">
+                  <p className="text-sm font-black tabular-nums text-slate-900 dark:text-slate-100">{mix.byDiff[d] ?? 0}</p>
+                  <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
                     {d === "easy" ? "সহজ" : d === "medium" ? "মাঝারি" : "কঠিন"}
                   </p>
                 </div>
@@ -371,25 +413,27 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           ) : null}
 
           {picked.length ? (
-            <div className="mb-2 rounded-xl border border-teal-200 bg-teal-50 p-2">
-              <p className="mb-1.5 text-xs font-bold">{picked.length}টি নির্বাচিত</p>
+            <div className="rounded-xl border border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-950/70 p-2.5 shadow-sm">
+              <p className="mb-2 text-xs font-black text-teal-950 dark:text-teal-100">{picked.length}টি প্রশ্ন নির্বাচিত</p>
               <div className="flex flex-wrap gap-1">
                 {[10, 30, 60].map((t) => (
                   <button key={t} onClick={() => bulkTiming("timer", t)}
-                    className="rounded-md bg-white px-2 py-1 text-[11px] font-bold">⏱{t}s</button>
+                    className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-sm hover:bg-slate-50">⏱{t}s</button>
                 ))}
                 {[1, 2, 5].map((m) => (
                   <button key={m} onClick={() => bulkTiming("marks", m)}
-                    className="rounded-md bg-white px-2 py-1 text-[11px] font-bold">🎯{m}</button>
+                    className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-sm hover:bg-slate-50">🎯{m}m</button>
                 ))}
-                <button onClick={bulkRemove} className="rounded-md bg-rose-500 px-2 py-1 text-[11px] font-bold text-white">সরান</button>
-                <button onClick={() => setPicked([])} className="rounded-md px-2 py-1 text-[11px] font-bold text-slate-500">বাতিল</button>
+                <button onClick={bulkRemove} className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm hover:bg-rose-700">সরান</button>
+                <button onClick={() => setPicked([])} className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-xs font-bold text-slate-600 dark:text-slate-300">বাতিল</button>
               </div>
             </div>
           ) : null}
-          <div className="max-h-[520px] space-y-1.5 overflow-y-auto pg-scroll">
+
+          <div className="max-h-[520px] space-y-2 overflow-y-auto pg-scroll pr-0.5">
             {visible.map((q, i) => {
               const index = questions.indexOf(q);
+              const isActive = active === index;
               return (
                 <div
                   key={q.id}
@@ -410,16 +454,18 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   }}
                   onClick={() => setActive(index)}
                   className={cx(
-                    "cursor-grab rounded-xl border px-2.5 py-2 text-xs transition",
-                    active === index ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]",
-                    dragOver === index && "border-dashed border-[var(--pg-gold)] bg-amber-50",
-                    picked.includes(q.id) && "ring-2 ring-[var(--pg-teal)]",
+                    "cursor-grab rounded-xl border p-2.5 text-xs transition-all shadow-sm",
+                    isActive
+                      ? "border-teal-500 bg-teal-50/90 dark:bg-teal-950/70 ring-2 ring-teal-400/40"
+                      : "border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:border-teal-300 dark:hover:border-teal-700",
+                    dragOver === index && "border-dashed border-amber-400 bg-amber-50 dark:bg-amber-950/50",
+                    picked.includes(q.id) && "ring-2 ring-teal-500",
                   )}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-start gap-2">
                     <input
                       type="checkbox"
-                      className="h-3.5 w-3.5"
+                      className="mt-0.5 h-4 w-4 rounded accent-teal-600 cursor-pointer"
                       checked={picked.includes(q.id)}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) =>
@@ -427,23 +473,46 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                       }
                       aria-label={`select question ${index + 1}`}
                     />
-                    <span className="font-black text-slate-400">{index + 1}</span>
-                    <span className="line-clamp-2 flex-1 font-semibold">{q.text}</span>
+                    <span className="font-black text-xs text-slate-600 dark:text-slate-300 min-w-[18px]">
+                      {index + 1}.
+                    </span>
+                    <span className="line-clamp-2 flex-1 font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                      {q.text}
+                    </span>
                   </div>
-                  <div className="mt-1 flex items-center gap-1">
-                    <Badge tone="teal">⏱{q.timer}s</Badge>
+
+                  <div className="mt-2 flex items-center gap-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60">
+                    <Badge tone="teal">⏱ {q.timer}s</Badge>
                     <Badge tone="slate">{q.marks}m</Badge>
+                    <Badge tone={q.difficulty === "easy" ? "green" : q.difficulty === "hard" ? "coral" : "gold"}>
+                      {q.difficulty === "easy" ? "সহজ" : q.difficulty === "hard" ? "কঠিন" : "মাঝারি"}
+                    </Badge>
                     <div className="flex-1" />
-                    <button onClick={(e) => { e.stopPropagation(); move(index, -1); }} aria-label="up">↑</button>
-                    <button onClick={(e) => { e.stopPropagation(); move(index, 1); }} aria-label="down">↓</button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); move(index, -1); }}
+                      aria-label="up"
+                      title="উপরে নিন"
+                      className="h-6 w-6 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center transition"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); move(index, 1); }}
+                      aria-label="down"
+                      title="নিচে নিন"
+                      className="h-6 w-6 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center transition"
+                    >
+                      ↓
+                    </button>
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
                         await post({ op: "removeQuestion", id: quizId, questionIds: [q.id] });
                         load();
                       }}
-                      className="text-rose-500"
+                      className="h-6 w-6 rounded border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/50 text-xs font-bold text-rose-600 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900 flex items-center justify-center transition"
                       aria-label="remove"
+                      title="মুছে ফেলুন"
                     >
                       ✕
                     </button>
@@ -452,9 +521,9 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
               );
             })}
             {!questions.length ? (
-              <div className="py-6 text-center">
-                <p className="text-xs text-slate-400">এখনো কোনো প্রশ্ন নেই</p>
-                <Button size="sm" variant="gold" className="mt-2" onClick={() => setAiOpen(true)}>
+              <div className="py-8 text-center">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">এখনো কোনো প্রশ্ন নেই</p>
+                <Button size="sm" className="mt-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black" onClick={() => setAiOpen(true)}>
                   ✨ এআই দিয়ে শুরু করুন
                 </Button>
               </div>
@@ -476,14 +545,16 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
 
         {/* --------------------------------- canvas --------------------------------- */}
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             {(["desktop", "mobile", "exam"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setPreviewMode(m)}
                 className={cx(
-                  "rounded-lg px-3 py-1.5 text-xs font-bold",
-                  previewMode === m ? "bg-[var(--pg-deep)] text-white" : "bg-slate-100",
+                  "rounded-xl border px-3.5 py-2 text-xs font-black transition-all shadow-sm",
+                  previewMode === m
+                    ? "border-teal-600 bg-teal-600 text-white ring-2 ring-teal-500/20"
+                    : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700",
                 )}
               >
                 {m === "desktop" ? "🖥️ ডেস্কটপ" : m === "mobile" ? "📱 মোবাইল" : "📝 পরীক্ষা"}
@@ -493,30 +564,33 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             <button
               onClick={() => { setShowReveal((v) => !v); setRevealKey((k) => k + 1); }}
               className={cx(
-                "rounded-lg px-3 py-1.5 text-xs font-bold",
-                showReveal ? "bg-emerald-600 text-white" : "bg-slate-100",
+                "rounded-xl border px-3.5 py-2 text-xs font-black transition-all shadow-sm",
+                showReveal
+                  ? "border-emerald-600 bg-emerald-600 text-white ring-2 ring-emerald-500/20"
+                  : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700",
               )}
             >
               {showReveal ? "✅ উত্তর দেখানো হচ্ছে" : "👁 উত্তর রিভিল প্রিভিউ"}
             </button>
           </div>
+
           <ThemeStage
             config={previewMode === "exam" ? { ...theme, backgroundMotion: "static", particles: "none", background: "#f1f5f9" } : theme}
             className={cx(
-              "mx-auto w-full rounded-2xl p-4 shadow-xl transition-all",
+              "mx-auto w-full rounded-2xl p-4 shadow-xl transition-all border border-slate-200/50 dark:border-slate-800",
               previewMode === "mobile" && "max-w-sm",
             )}
           >
             {current ? (
               <>
                 <div className="mb-3 flex items-center justify-between">
-                  <span className={cx("text-xs font-bold", previewMode === "exam" ? "text-slate-500" : "text-white/80")}>
-                    প্রশ্ন {active + 1}/{questions.length}
+                  <span className={cx("text-xs font-extrabold", previewMode === "exam" ? "text-slate-700" : "text-white/90 drop-shadow-sm")}>
+                    প্রশ্ন {active + 1} / {questions.length}
                   </span>
                   {previewMode !== "exam" ? (
                     <QuizTimer endsAt={null} total={current.timer} style={theme.timerStyle} color={theme.accent} size={64} />
                   ) : (
-                    <span className="text-xs font-bold text-slate-500">
+                    <span className="text-xs font-black text-slate-700">
                       মোট সময়: {formatDuration(totalTime + (s.examBufferSeconds ?? 0))}
                     </span>
                   )}
@@ -539,21 +613,53 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   />
                 </div>
                 {showReveal ? (
-                  <p className="mt-2 text-center text-[11px] text-white/70">
+                  <p className="mt-2 text-center text-xs font-bold text-white/90 drop-shadow-sm">
                     সবুজ = সঠিক · কাঁপুনি = ভুল উত্তর — শিক্ষার্থীরা এভাবেই দেখবে
                   </p>
                 ) : null}
               </>
             ) : (
-              <p className="py-16 text-center text-sm text-white/80">প্রিভিউ দেখতে প্রশ্ন যোগ করুন</p>
+              <p className="py-16 text-center text-sm font-bold text-white/90">প্রিভিউ দেখতে প্রশ্ন যোগ করুন</p>
             )}
           </ThemeStage>
 
           {current ? (
-            <Card>
-              <p className="mb-2 text-xs font-bold uppercase text-slate-400">এই প্রশ্নের সেটিংস</p>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Field label="মার্কস">
+            <Card className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                <p className="text-sm font-black text-slate-900 dark:text-slate-100">
+                  ⚙️ সক্রিয় প্রশ্ন #{active + 1} কাস্টমাইজেশন
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Badge tone="teal">{current.type}</Badge>
+                  <Badge tone={current.difficulty === "easy" ? "green" : current.difficulty === "hard" ? "coral" : "gold"}>
+                    {current.difficulty === "easy" ? "সহজ" : current.difficulty === "hard" ? "কঠিন" : "মাঝারি"}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Direct Inline Edit of Question Text */}
+              <Field label="প্রশ্নের টেক্সট পরিবর্তন করুন">
+                <input
+                  type="text"
+                  value={current.text}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setQuestions((qs) => qs.map((q, i) => (i === active ? { ...q, text: v } : q)));
+                  }}
+                  onBlur={() =>
+                    post({
+                      op: "questionOverride",
+                      id: quizId,
+                      questionIds: [current.id],
+                      data: { text: current.text, marks: current.marks, timer: current.timer },
+                    })
+                  }
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm font-bold text-slate-900 dark:text-slate-100 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none"
+                />
+              </Field>
+
+              <div className="grid gap-2.5 sm:grid-cols-3">
+                <Field label="নম্বর / মার্কস">
                   <Input
                     type="number"
                     value={current.marks}
@@ -580,10 +686,11 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   />
                 </Field>
                 <Field label="ডিফিকাল্টি">
-                  <Input value={current.difficulty} disabled />
+                  <Input value={current.difficulty === "easy" ? "সহজ" : current.difficulty === "hard" ? "কঠিন" : "মাঝারি"} disabled className="font-bold opacity-90" />
                 </Field>
               </div>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 <Field label="এই প্রশ্নের Animation">
                   <Select value={String(current.settings?.animation ?? "slide")} onChange={async (e) => { const animation = e.target.value; setQuestions(qs => qs.map((q,i)=>i===active?{...q,settings:{...(q.settings??{}),animation}}:q)); await post({ op: "questionOverride", id: quizId, questionIds: [current.id], data: { marks: current.marks, timer: current.timer, settings: { ...(current.settings ?? {}), animation } } }); }}>
                     <option value="fade">Fade</option><option value="slide">Slide</option><option value="zoom">Zoom</option><option value="flip">Flip</option><option value="pop">Pop</option><option value="none">None</option>
@@ -595,8 +702,9 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   </Select>
                 </Field>
               </div>
-              <div className="mt-2">
-                <p className="mb-1.5 text-xs font-semibold text-slate-600">দ্রুত সময় নির্ধারণ</p>
+
+              <div>
+                <p className="mb-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">দ্রুত সময় নির্ধারণ</p>
                 <div className="flex flex-wrap gap-1.5">
                   {[10, 15, 20, 30, 45, 60, 90, 120].map((t) => (
                     <button
@@ -611,28 +719,32 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                         });
                       }}
                       className={cx(
-                        "rounded-lg border px-2.5 py-1.5 text-xs font-bold",
-                        current.timer === t ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]",
+                        "rounded-xl border px-3 py-1.5 text-xs font-black transition-all",
+                        current.timer === t
+                          ? "border-teal-600 bg-teal-600 text-white shadow-sm"
+                          : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:border-teal-400 hover:bg-teal-50 dark:hover:bg-slate-700",
                       )}
                     >
                       {t}s
                     </button>
                   ))}
                 </div>
-                <p className="mt-1.5 text-[11px] text-slate-500">
-                  ⏱ কঠিন প্রশ্নে বেশি সময় দিন — মোট সময় নিজে থেকেই যোগ হবে।
+                <p className="mt-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                  ⏱ কঠিন প্রশ্নে বেশি সময় দিন — মোট কুইজ সময় নিজে থেকেই যোগ হবে।
                 </p>
               </div>
 
               {current.explanation ? (
-                <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs"><b>ব্যাখ্যা:</b> {current.explanation}</p>
+                <p className="mt-2 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 p-2.5 text-xs font-medium text-amber-950 dark:text-amber-200">
+                  <b>ব্যাখ্যা:</b> {current.explanation}
+                </p>
               ) : null}
             </Card>
           ) : null}
         </div>
 
         {/* -------------------------------- settings -------------------------------- */}
-        <Card>
+        <Card className="space-y-4">
           <Tabs
             tabs={[
               { id: "simple", label: "সহজ" },
@@ -644,8 +756,8 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           />
 
           {tab === "simple" ? (
-            <div className="space-y-3">
-              <Field label="ধরন">
+            <div className="space-y-3.5">
+              <Field label="কুইজের ধরন">
                 <Select
                   value={quiz.mode}
                   onChange={async (e) => {
@@ -655,20 +767,21 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                     await post({ op: "update", id: quizId, data: { mode, settings } });
                   }}
                 >
-                  <option value="live">লাইভ কুইজ</option>
-                  <option value="exam">ফরমাল পরীক্ষা</option>
-                  <option value="practice">অনুশীলন</option>
+                  <option value="live">লাইভ কুইজ (ক্লাসরুম গেম)</option>
+                  <option value="exam">ফরমাল পরীক্ষা (টাইমার ও পাস মার্ক)</option>
+                  <option value="practice">অনুশীলন মোড (স্ব-গতিতে)</option>
                 </Select>
               </Field>
-              <div className="rounded-xl border border-teal-200 bg-teal-50 p-3">
-                <p className="text-xs font-bold">⏱ মোট সময় স্বয়ংক্রিয়</p>
-                <p className="mt-0.5 text-lg font-black text-[var(--pg-deep)]">
+
+              <div className="rounded-2xl border border-teal-300 dark:border-teal-700 bg-teal-50/90 dark:bg-teal-950/50 p-3.5 shadow-sm">
+                <p className="text-xs font-black text-teal-950 dark:text-teal-200">⏱ মোট সময় স্বয়ংক্রিয় হিসাব</p>
+                <p className="mt-0.5 text-xl font-black text-teal-800 dark:text-teal-200">
                   {formatDuration(totalTime + (s.examBufferSeconds ?? 0))}
                 </p>
-                <p className="mt-1 text-[11px] text-slate-600">
+                <p className="mt-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                   {questions.length}টি প্রশ্নের সময়ের যোগফল ({formatDuration(totalTime)})
                   {s.examBufferSeconds ? ` + ${s.examBufferSeconds}s বাফার` : ""}।
-                  প্রশ্ন যোগ করলে সময়ও বাড়বে।
+                  প্রশ্ন যোগ করলে সময়ও নিজে থেকেই আপডেট হয়।
                 </p>
               </div>
 
@@ -685,48 +798,49 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   onChange={(e) => saveSettings({ ...s, examBufferSeconds: Number(e.target.value) })}
                 />
               </Field>
+
               <div>
-                <p className="mb-1.5 text-xs font-semibold text-slate-600">থিম</p>
+                <p className="mb-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">ভিজ্যুয়াল থিম</p>
                 <div className="grid max-h-56 grid-cols-2 gap-2 overflow-y-auto pg-scroll">
                   <button
                     onClick={() => saveSettings({ ...s, templateId: null })}
                     className={cx(
-                      "overflow-hidden rounded-xl border-2 text-left",
-                      !s.templateId ? "border-[var(--pg-teal)]" : "border-[var(--pg-line)]",
+                      "overflow-hidden rounded-xl border-2 text-left transition-all",
+                      !s.templateId ? "border-teal-500 ring-2 ring-teal-500/20" : "border-slate-200 dark:border-slate-700",
                     )}
                   >
                     <ThemeStage config={{}} className="h-12" />
-                    <span className="block px-2 py-1 text-[10px] font-bold">ডিফল্ট</span>
+                    <span className="block px-2 py-1 text-xs font-bold text-slate-800 dark:text-slate-200">ডিফল্ট</span>
                   </button>
                   {templates.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => saveSettings({ ...s, templateId: t.id })}
                       className={cx(
-                        "overflow-hidden rounded-xl border-2 text-left",
-                        s.templateId === t.id ? "border-[var(--pg-teal)]" : "border-[var(--pg-line)]",
+                        "overflow-hidden rounded-xl border-2 text-left transition-all",
+                        s.templateId === t.id ? "border-teal-500 ring-2 ring-teal-500/20" : "border-slate-200 dark:border-slate-700",
                       )}
                     >
                       <ThemeStage config={t.config} className="h-12" />
-                      <span className="block truncate px-2 py-1 text-[10px] font-bold">{t.name}</span>
+                      <span className="block truncate px-2 py-1 text-xs font-bold text-slate-800 dark:text-slate-200">{t.name}</span>
                     </button>
                   ))}
                 </div>
-                <Link href="/teacher/templates" className="mt-1.5 inline-block text-xs font-bold text-[var(--pg-teal)]">
+                <Link href="/teacher/templates" className="mt-2 inline-block text-xs font-black text-teal-600 dark:text-teal-400 hover:underline">
                   🎨 টেমপ্লেট স্টুডিওতে নতুন থিম বানান →
                 </Link>
               </div>
 
-              <div className="pt-3 border-t border-slate-200">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
                 <QuizPlateSelector
                   value={s.plateStyle || "auto"}
                   onChange={(val) => saveSettings({ ...s, plateStyle: val })}
                 />
               </div>
 
-              <Toggle checked={s.leaderboard} onChange={(v) => saveSettings({ ...s, leaderboard: v })} label="লিডারবোর্ড" />
+              <Toggle checked={s.leaderboard} onChange={(v) => saveSettings({ ...s, leaderboard: v })} label="লিডারবোর্ড প্রদর্শন" />
               <Toggle checked={s.cinematicIntro} onChange={(v) => saveSettings({ ...s, cinematicIntro: v })} label="সিনেমাটিক ইন্ট্রো" />
-              <Toggle checked={s.feedbackEnabled} onChange={(v) => saveSettings({ ...s, feedbackEnabled: v })} label="ফিডব্যাক নিন" />
+              <Toggle checked={s.feedbackEnabled} onChange={(v) => saveSettings({ ...s, feedbackEnabled: v })} label="শিক্ষার্থীদের ফিডব্যাক নিন" />
             </div>
           ) : null}
 
@@ -782,7 +896,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   <Input type="number" min={2} max={20} value={s.teamCount} onChange={(e) => saveSettings({ ...s, teamCount: Number(e.target.value) })} />
                 </Field>
               ) : null}
-              <p className="pt-2 text-xs font-bold uppercase text-slate-400">পাওয়ার-আপ</p>
+              <p className="pt-2 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">পাওয়ার-আপ</p>
               {Object.keys(s.powerUps).map((k) => (
                 <Toggle
                   key={k}
@@ -791,7 +905,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   label={k}
                 />
               ))}
-              <p className="pt-2 text-xs font-bold uppercase text-slate-400">পরীক্ষা সেটিংস</p>
+              <p className="pt-2 text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">পরীক্ষা সেটিংস</p>
               <div className="grid grid-cols-2 gap-2">
                 <Field label="নেগেটিভ মার্কিং">
                   <Input type="number" step={0.25} value={s.negativeMarking} onChange={(e) => saveSettings({ ...s, negativeMarking: Number(e.target.value) })} />
@@ -804,12 +918,13 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
               <Toggle checked={s.randomOptions} onChange={(v) => saveSettings({ ...s, randomOptions: v })} label="অপশন এলোমেলো" />
               <Toggle checked={s.guestJoin} onChange={(v) => saveSettings({ ...s, guestJoin: v })} label="গেস্ট জয়েন (নিকনেম)" />
 
-              <div className="mt-4 rounded-xl bg-slate-50 p-3">
-                <p className="mb-2 text-xs font-bold">প্রিসেট হিসেবে সংরক্ষণ</p>
+              <div className="mt-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 p-3.5 shadow-sm">
+                <p className="mb-2 text-xs font-black text-slate-800 dark:text-slate-100">প্রিসেট হিসেবে সংরক্ষণ</p>
                 <div className="flex gap-2">
                   <Input value={presetName} onChange={(e) => setPresetName(e.target.value)} placeholder="প্রিসেটের নাম" />
                   <Button
                     size="sm"
+                    className="font-bold"
                     onClick={async () => {
                       await post({ op: "savePreset", name: presetName || "নতুন প্রিসেট", settings: s });
                       push("প্রিসেট সংরক্ষিত", "success");
@@ -818,12 +933,13 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                     সংরক্ষণ
                   </Button>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => saveSettings({ ...DEFAULT_SETTINGS })}>দ্রুত ক্লাসরুম কুইজ</Button>
-                  <Button size="sm" variant="outline" onClick={() => saveSettings({ ...EXAM_SETTINGS })}>ফরমাল পরীক্ষা</Button>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => saveSettings({ ...DEFAULT_SETTINGS })}>দ্রুত ক্লাসরুম কুইজ</Button>
+                  <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => saveSettings({ ...EXAM_SETTINGS })}>ফরমাল পরীক্ষা</Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="text-xs font-bold"
                     onClick={() => saveSettings({ ...DEFAULT_SETTINGS, scoring: "difficulty", teamMode: true, powerUps: { ...s.powerUps, double_points: true, fifty_fifty: true } })}
                   >
                     কম্পিটিশন মোড
@@ -834,21 +950,22 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           ) : null}
 
           {tab === "rounds" ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {rounds.map((r) => (
-                <div key={r.id} className="flex items-center gap-2 rounded-xl border border-[var(--pg-line)] p-2">
+                <div key={r.id} className="flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 shadow-sm">
                   <Input
                     value={r.name}
                     onChange={(e) => setRounds((rs) => rs.map((x) => (x.id === r.id ? { ...x, name: e.target.value } : x)))}
                     onBlur={() => post({ op: "updateRound", id: r.id, name: r.name, settings: r.settings })}
+                    className="font-bold"
                   />
-                  <Button size="sm" variant="ghost" onClick={async () => { await post({ op: "deleteRound", id: r.id }); load(); }}>✕</Button>
+                  <Button size="sm" variant="ghost" className="text-rose-500 font-bold" onClick={async () => { await post({ op: "deleteRound", id: r.id }); load(); }}>✕</Button>
                 </div>
               ))}
-              <Button size="sm" variant="outline" onClick={async () => { await post({ op: "addRound", id: quizId }); load(); }}>
+              <Button size="sm" variant="outline" className="font-bold" onClick={async () => { await post({ op: "addRound", id: quizId }); load(); }}>
                 + রাউন্ড যোগ করুন
               </Button>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                 রাউন্ড ব্যবহার করে বিষয়ভিত্তিক পর্ব তৈরি করুন — যেমন রাউন্ড ১ কম্পিউটার, রাউন্ড ২ গণিত।
               </p>
             </div>
@@ -861,7 +978,16 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
       </Modal>
 
       <Modal open={pasteOpen} onClose={() => setPasteOpen(false)} title="📋 Copy-Paste Question Import" wide footer={<><Button variant="ghost" onClick={() => setPasteOpen(false)}>বাতিল</Button><Button onClick={importPaste}>প্রশ্ন শনাক্ত করে যোগ করুন</Button></>}>
-        <div className="space-y-3"><p className="text-xs text-slate-500">Numbered questions, A/B/C/D options, Answer:, CSV/TSV বা * দিয়ে correct option mark করা text পেস্ট করতে পারবেন।</p><textarea className="min-h-[360px] w-full rounded-2xl border border-[var(--pg-line)] bg-white p-4 font-mono text-sm outline-none focus:ring-2 focus:ring-teal-200" value={pasteText} onChange={e=>setPasteText(e.target.value)} placeholder={`1. বাংলাদেশের রাজধানী কোনটি?\nA) ঢাকা\nB) চট্টগ্রাম\nC) রাজশাহী\nD) খুলনা\nAnswer: A\n\n2. ...`} /><p className="text-[11px] text-slate-400">Parser বাংলা/English দুটোই বোঝে এবং question type স্বয়ংক্রিয়ভাবে শনাক্ত করে।</p></div>
+        <div className="space-y-3">
+          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Numbered questions, A/B/C/D options, Answer:, CSV/TSV বা * দিয়ে correct option mark করা text পেস্ট করতে পারবেন।</p>
+          <textarea
+            className="min-h-[360px] w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-4 font-mono text-sm outline-none focus:ring-2 focus:ring-teal-400"
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder={`1. বাংলাদেশের রাজধানী কোনটি?\nA) ঢাকা\nB) চট্টগ্রাম\nC) রাজশাহী\nD) খুলনা\nAnswer: A\n\n2. ...`}
+          />
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Parser বাংলা/English দুটোই বোঝে এবং question type স্বয়ংক্রিয়ভাবে শনাক্ত করে।</p>
+        </div>
       </Modal>
 
       <Modal
@@ -871,13 +997,13 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         footer={
           <>
             <Button variant="ghost" onClick={() => setAiOpen(false)}>বাতিল</Button>
-            <Button loading={aiBusy} onClick={quickAI} disabled={!aiTopic.trim()}>
+            <Button loading={aiBusy} onClick={quickAI} disabled={!aiTopic.trim()} className="font-bold">
               {aiCount}টি প্রশ্ন যোগ করুন
             </Button>
           </>
         }
       >
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <Field label="কোন বিষয়ে প্রশ্ন চান?" required hint="যেমন: HTML ফর্ম · সালোকসংশ্লেষণ · বাংলাদেশের মুক্তিযুদ্ধ">
             <Input
               value={aiTopic}
@@ -888,15 +1014,17 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           </Field>
 
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-slate-600">কতটি প্রশ্ন?</p>
+            <p className="mb-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">কতটি প্রশ্ন?</p>
             <div className="flex flex-wrap gap-1.5">
               {[3, 5, 10, 15, 20, 30].map((n) => (
                 <button
                   key={n}
                   onClick={() => setAiCount(n)}
                   className={cx(
-                    "rounded-lg border px-3 py-1.5 text-xs font-bold",
-                    aiCount === n ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]",
+                    "rounded-xl border px-3 py-1.5 text-xs font-black transition-all",
+                    aiCount === n
+                      ? "border-teal-600 bg-teal-600 text-white shadow-sm"
+                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:border-teal-400",
                   )}
                 >
                   {n}
@@ -923,7 +1051,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           </div>
 
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-slate-600">প্রশ্নের ধরন</p>
+            <p className="mb-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">প্রশ্নের ধরন</p>
             <div className="flex flex-wrap gap-1.5">
               {[
                 ["mcq", "🔘 Multiple Choice"], ["multi_select", "☑️ Multiple Select"], ["true_false", "✔️ True / False"],
@@ -938,8 +1066,10 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                     setAiTypes((t) => (t.includes(v) ? t.filter((x) => x !== v) : [...t, v]))
                   }
                   className={cx(
-                    "rounded-lg border px-2.5 py-1.5 text-xs font-semibold",
-                    aiTypes.includes(v) ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]",
+                    "rounded-xl border px-2.5 py-1.5 text-xs font-bold transition-all",
+                    aiTypes.includes(v)
+                      ? "border-teal-600 bg-teal-600 text-white shadow-sm"
+                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:border-teal-400",
                   )}
                 >
                   {l}
@@ -948,7 +1078,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
 
-          <p className="rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500">
+          <p className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 p-3 text-xs font-medium text-slate-700 dark:text-slate-300">
             💡 প্রশ্নগুলো সরাসরি এই কুইজে যোগ হবে এবং প্রশ্ন ব্যাংকেও সংরক্ষিত থাকবে। যোগ হওয়ার পর
             সম্পাদনা করতে পারবেন।
           </p>
@@ -958,15 +1088,16 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
       <Modal open={pickerOpen} onClose={() => setPickerOpen(false)} title="প্রশ্ন ব্যাংক থেকে যোগ করুন" wide>
         <div className="flex gap-2">
           <Input value={bankQuery} onChange={(e) => setBankQuery(e.target.value)} placeholder="খুঁজুন…" />
-          <Button onClick={searchBank}>খুঁজুন</Button>
+          <Button onClick={searchBank} className="font-bold">খুঁজুন</Button>
         </div>
         <div className="mt-3 max-h-[50vh] space-y-2 overflow-y-auto pg-scroll">
           {bankRows.map((q) => (
-            <div key={q.id} className="flex items-center gap-2 rounded-xl border border-[var(--pg-line)] p-2 text-sm">
-              <span className="flex-1">{q.text}</span>
+            <div key={q.id} className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/90 p-3 text-sm font-medium shadow-sm">
+              <span className="flex-1 font-bold text-slate-900 dark:text-slate-100">{q.text}</span>
               <Badge tone="slate">{q.difficulty}</Badge>
               <Button
                 size="sm"
+                className="font-bold"
                 onClick={async () => {
                   await post({ op: "addQuestions", id: quizId, questionIds: [q.id] });
                   load();
@@ -978,16 +1109,17 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             </div>
           ))}
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <Button
             variant="gold"
             block
+            className="font-black"
             onClick={() => { setPickerOpen(false); setAiOpen(true); }}
           >
-            ✨ এআই দিয়ে এখানেই তৈরি করুন
+            ✨ এআই দিয়ে তৈরি করুন
           </Button>
           <Link href="/teacher/ai">
-            <Button variant="outline" block>📄 PDF / পেস্ট থেকে আনুন</Button>
+            <Button variant="outline" block className="font-bold">📄 PDF / পেস্ট থেকে আনুন</Button>
           </Link>
         </div>
       </Modal>

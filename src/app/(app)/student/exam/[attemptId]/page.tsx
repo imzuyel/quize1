@@ -5,6 +5,8 @@ import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Confetti, DonutChart, Modal, useToast, cx } from "@/components/ui";
 import { QuestionInput } from "@/components/interactive";
 import { QuizResultFeedbackCard } from "@/components/quiz-result-feedback-card";
+import { LiveSmartCoachBanner, Milestone5CheckpointModal } from "@/components/live-smart-feedback";
+import { getLivePerformanceRemark, getMilestoneReview, type LivePerformanceRemark, type MilestoneReview } from "@/lib/quiz-feedback";
 
 type Q = {
   id: number;
@@ -33,6 +35,15 @@ export default function ExamRunner({ params }: { params: Promise<{ attemptId: st
   const [result, setResult] = useState<{ score: number; maxScore: number; accuracy: number; correctCount: number; total: number } | null>(null);
   const [now, setNow] = useState(0);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // 5-Question Milestone and Smart Coach states
+  const [performanceRemark, setPerformanceRemark] = useState<LivePerformanceRemark | null>(null);
+  const [milestoneReview, setMilestoneReview] = useState<MilestoneReview | null>(null);
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [consecutiveWrong, setConsecutiveWrong] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [recentAnswers, setRecentAnswers] = useState<boolean[]>([]);
+  const [sessionCorrectCount, setSessionCorrectCount] = useState(0);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/exam?attempt=${attemptId}`);
@@ -112,6 +123,43 @@ export default function ExamRunner({ params }: { params: Promise<{ attemptId: st
     const data = await res.json();
     if (res.ok && isPractice && data.correct !== undefined) {
       setFeedback({ correct: data.correct, explanation: data.explanation, correctAnswer: data.correctAnswer ?? [] });
+
+      const isCorrect = Boolean(data.correct);
+      const nextStreak = isCorrect ? streak + 1 : 0;
+      const nextConsecutiveWrong = isCorrect ? 0 : consecutiveWrong + 1;
+      const nextCorrectCount = sessionCorrectCount + (isCorrect ? 1 : 0);
+      const nextRecent = [...recentAnswers, isCorrect].slice(-5);
+
+      setStreak(nextStreak);
+      setConsecutiveWrong(nextConsecutiveWrong);
+      setSessionCorrectCount(nextCorrectCount);
+      setRecentAnswers(nextRecent);
+
+      const remark = getLivePerformanceRemark({
+        correct: isCorrect,
+        streak: nextStreak,
+        consecutiveWrong: nextConsecutiveWrong,
+        questionNumber: index + 1,
+      });
+      setPerformanceRemark(remark);
+
+      const nextAnsweredCount = Object.keys(answers).includes(String(q.id))
+        ? Object.keys(answers).length
+        : Object.keys(answers).length + 1;
+
+      if (nextAnsweredCount > 0 && nextAnsweredCount % 5 === 0) {
+        const ms = getMilestoneReview({
+          questionIndex: nextAnsweredCount - 1,
+          score: nextCorrectCount * (q.marks || 1),
+          rank: 1,
+          totalPlayers: 1,
+          correctCount: nextCorrectCount,
+          answeredCount: nextAnsweredCount,
+          recent5Answers: nextRecent,
+        });
+        setMilestoneReview(ms);
+        setShowMilestoneModal(true);
+      }
     }
   };
 
@@ -212,6 +260,25 @@ export default function ExamRunner({ params }: { params: Promise<{ attemptId: st
             </div>
           ) : null}
 
+          {performanceRemark ? (
+            <div className="mt-3">
+              <LiveSmartCoachBanner
+                remark={performanceRemark}
+                onDismiss={() => setPerformanceRemark(null)}
+              />
+            </div>
+          ) : null}
+
+          {milestoneReview && !showMilestoneModal ? (
+            <button
+              type="button"
+              onClick={() => setShowMilestoneModal(true)}
+              className="mt-3 w-full rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 p-3 text-center text-xs font-black text-amber-700 dark:text-amber-200 shadow-sm transition hover:bg-amber-500/30"
+            >
+              🎯 প্রশ্ন {milestoneReview.milestoneNumber} মাইলস্টোন রিভিউ দেখুন (ক্লিক করুন)
+            </button>
+          ) : null}
+
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="outline" disabled={index === 0} onClick={() => { setIndex((i) => i - 1); setFeedback(null); }}>
               ← আগের
@@ -286,6 +353,20 @@ export default function ExamRunner({ params }: { params: Promise<{ attemptId: st
           আপনি {answeredCount}/{questions.length} প্রশ্নের উত্তর দিয়েছেন। জমা দিলে আর পরিবর্তন করা যাবে না।
         </p>
       </Modal>
+
+      {milestoneReview ? (
+        <Milestone5CheckpointModal
+          open={showMilestoneModal}
+          review={milestoneReview}
+          onContinue={() => {
+            setShowMilestoneModal(false);
+            if (index < questions.length - 1) {
+              setIndex((i) => i + 1);
+              setFeedback(null);
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }

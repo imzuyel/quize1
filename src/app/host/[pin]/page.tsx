@@ -13,15 +13,21 @@ import { FullscreenButton, useClassroomSounds } from "@/components/live-effects"
 import { LiveQuestionPalette } from "@/components/live-question-palette";
 import { LiveSessionPacingTimer } from "@/components/live-session-timer";
 import { QuizPlate } from "@/components/quiz-plate";
+import { LiveKahootLobby } from "@/components/live-kahoot-lobby";
+import { LiveSessionChat } from "@/components/live-session-chat";
+import { AnimatedKahootLeaderboard } from "@/components/animated-kahoot-leaderboard";
+import { LiveReadinessTracker } from "@/components/live-readiness-tracker";
+import { LiveCountdownOverlay } from "@/components/live-countdown-overlay";
 
 export default function HostPage({ params }: { params: Promise<{ pin: string }> }) {
   const router = useRouter();
   const { pin } = use(params);
-  const { snapshot, status, reactions, isDeleted } = useLiveSession(pin);
+  const { snapshot, status, reactions, isDeleted, chatMessages, chatEnabled, sendChatMessage, toggleChat } = useLiveSession(pin);
   const { push } = useToast();
   const [intro, setIntro] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const [showPaletteModal, setShowPaletteModal] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [busy, setBusy] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -145,6 +151,14 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setLeaderboardOpen(true)}
+            className="border-amber-400/50 bg-amber-400/20 text-amber-200 font-bold hover:bg-amber-400/30 shadow-sm"
+          >
+            🏆 লিডারবোর্ড
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowPaletteModal(true)}
             className="relative font-bold"
             title="প্রশ্ন প্যালেট ও রিয়েল-টাইম বিশ্লেষণ দেখুন"
@@ -206,40 +220,28 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
               </div>
 
               {state === "lobby" ? (
-                <div className="mt-4 overflow-hidden rounded-3xl border border-white/10 bg-slate-950 p-5 text-white shadow-2xl">
-                  <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.25em] text-white/50">Classroom live game</p>
-                      <p className="mt-2 text-sm text-white/70">শিক্ষার্থীরা QR scan, Join Link, অথবা শুধু PIN/কিওয়ার্ড দিয়ে ঢুকতে পারবে।</p>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <span className="rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-cyan-100">🔗 {joinUrl}</span>
-                        <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(joinUrl); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch {} }} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-900">{copied ? "✓ Copied" : "Copy link"}</button>
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <Link href={`/teacher/controller/${pin}`} className="rounded-xl bg-cyan-400 px-3 py-2 text-xs font-black text-slate-950">📱 Open Mobile Controller</Link>
-                        <span className="text-[11px] text-white/55">মোবাইল থেকে Next, Reveal, Pause, Leaderboard ও End নিয়ন্ত্রণ করুন</span>
-                      </div>
-                      <div className="mt-4 flex flex-wrap items-end gap-3">
-                        <div className="rounded-2xl bg-white/10 px-5 py-3 ring-1 ring-white/10">
-                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Game PIN</p>
-                          <p className="mt-1 text-4xl font-black tracking-[0.25em] text-white sm:text-5xl">{pin}</p>
-                          {snapshot?.session?.joinKeyword ? <p className="mt-2 text-sm font-black tracking-[0.18em] text-cyan-200">কিওয়ার্ড: {snapshot.session.joinKeyword}</p> : null}
-                        </div>
-                        <div className="rounded-2xl bg-white/10 px-4 py-3">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Players</p>
-                          <p className="text-2xl font-black">{totalPlayers}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-center">
-                      <div className="rounded-2xl bg-white p-2 shadow-xl">
-                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(joinUrl)}`} alt="Join QR code" className="h-36 w-36" />
-                      </div>
-                    </div>
-                  </div>
-                  <Button className="mt-5" size="lg" block onClick={() => control("start")} loading={busy === "start"}>
-                    🚀 কুইজ শুরু করুন
-                  </Button>
+                <div className="mt-4">
+                  <LiveKahootLobby
+                    pin={pin}
+                    joinKeyword={snapshot?.session?.joinKeyword}
+                    quizTitle={snapshot?.quiz?.title ?? "লাইভ কুইজ"}
+                    totalQuestions={snapshot?.session?.total ?? 0}
+                    players={snapshot?.players ?? []}
+                    lobbyLocked={Boolean(snapshot?.session?.lobbyLocked)}
+                    onStart={() => control("start")}
+                    onKick={(playerId) => control("kick", { playerId })}
+                    onToggleLock={() => control("toggleLock")}
+                    onShowQr={() => setShowQr(true)}
+                    isStarting={busy === "start"}
+                    chatMessages={chatMessages}
+                    chatEnabled={chatEnabled}
+                    onSendMessage={async (text) => {
+                      await sendChatMessage(text, "হোস্ট", "host");
+                    }}
+                    onToggleChat={async (enabled) => {
+                      await toggleChat(enabled);
+                    }}
+                  />
                 </div>
               ) : null}
 
@@ -322,18 +324,43 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
                   ) : null}
 
                   {q.revealed ? (
-                    <Button
-                      className="mt-3 anim-pop"
-                      size="lg"
-                      block
-                      onClick={() => control("next")}
-                      loading={busy === "next"}
-                    >
-                      {snapshot!.session.currentIndex + 1 >= snapshot!.session.total
-                        ? "🏁 ফলাফল দেখান"
-                        : `➡️ পরবর্তী প্রশ্ন (${snapshot!.session.currentIndex + 2}/${snapshot!.session.total})`}
-                    </Button>
+                    <div className="mt-4 space-y-3">
+                      <LiveReadinessTracker
+                        players={snapshot?.players ?? []}
+                        readyPlayerIds={snapshot?.readyPlayers ?? []}
+                        currentIndex={snapshot?.session.currentIndex ?? 0}
+                        totalQuestions={snapshot?.session.total ?? 0}
+                        onNext={() => control("next")}
+                        isLoading={busy === "next"}
+                      />
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                        <span className="text-xs text-slate-500">
+                          💡 শিক্ষার্থীরা প্রস্তুত হলে স্ক্রিনে টিকচিহ্ন আসবে
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => control("leaderboard")}
+                          className="border-amber-400 bg-amber-50 text-amber-900 font-bold hover:bg-amber-100 shadow-sm"
+                        >
+                          🏆 সবার স্ক্রিনে লিডারবোর্ড দেখান
+                        </Button>
+                      </div>
+                    </div>
                   ) : null}
+                </div>
+              ) : null}
+
+              {state === "leaderboard" ? (
+                <div className="mt-4">
+                  <AnimatedKahootLeaderboard
+                    players={snapshot?.players ?? []}
+                    currentIndex={snapshot?.session.currentIndex ?? 0}
+                    totalQuestions={snapshot?.session.total ?? 0}
+                    onNext={() => control("next")}
+                    onClose={() => control("returnToQuestion")}
+                    isHost={true}
+                  />
                 </div>
               ) : null}
 
@@ -341,10 +368,13 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
                 <>
                   <Celebration config={theme} />
                   <div className="mt-4 text-center">
-                    <p className="text-4xl">🏆</p>
-                    <p className="mt-2 font-extrabold">কুইজ সম্পন্ন হয়েছে</p>
-                    <Leaderboard rows={snapshot!.players} limit={10} />
-                    <div className="mt-3 flex justify-center gap-2">
+                    <AnimatedKahootLeaderboard
+                      players={snapshot?.players ?? []}
+                      currentIndex={snapshot?.session.currentIndex ?? 0}
+                      totalQuestions={snapshot?.session.total ?? 0}
+                      isHost={true}
+                    />
+                    <div className="mt-5 flex justify-center gap-2">
                       <Link href={`/teacher/reports?quizId=${snapshot?.quiz.id}`}>
                         <Button variant="outline">রিপোর্ট দেখুন</Button>
                       </Link>
@@ -559,6 +589,46 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
         </div>
       </Modal>
 
+      {state === "countdown" ? (
+        <LiveCountdownOverlay />
+      ) : null}
+
+      <Modal
+        open={leaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+        title="লাইভ লিডারবোর্ড ওভারভিউ"
+      >
+        <div className="space-y-4">
+          <AnimatedKahootLeaderboard
+            players={snapshot?.players ?? []}
+            currentIndex={snapshot?.session.currentIndex ?? 0}
+            totalQuestions={snapshot?.session.total ?? 0}
+            onNext={() => {
+              setLeaderboardOpen(false);
+              control("next");
+            }}
+            onClose={() => setLeaderboardOpen(false)}
+            isHost={true}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                control("leaderboard");
+                setLeaderboardOpen(false);
+              }}
+              className="bg-amber-500 text-slate-950 font-bold hover:bg-amber-400"
+            >
+              📢 সবার স্ক্রিনে লিডারবোর্ড চালু করুন
+            </Button>
+            <Button size="sm" onClick={() => setLeaderboardOpen(false)}>
+              ✕ বন্ধ করুন
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         open={showPaletteModal}
         onClose={() => setShowPaletteModal(false)}
@@ -574,6 +644,24 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
           }}
         />
       </Modal>
+
+      {/* Floating Chat for Host during active quiz */}
+      {state !== "lobby" && (
+        <LiveSessionChat
+          pin={pin}
+          messages={chatMessages}
+          chatEnabled={chatEnabled}
+          isHost={true}
+          currentUserName="হোস্ট"
+          onSendMessage={async (text) => {
+            await sendChatMessage(text, "হোস্ট", "host");
+          }}
+          onToggleChat={async (enabled) => {
+            await toggleChat(enabled);
+          }}
+          variant="floating"
+        />
+      )}
     </ThemeStage>
   );
 }

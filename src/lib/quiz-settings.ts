@@ -140,6 +140,16 @@ export type LivePaletteItem = {
   status: "upcoming" | "active" | "locked" | "revealed" | "completed";
 };
 
+export type LiveChatMessage = {
+  id: string;
+  senderId?: number;
+  senderName: string;
+  senderRole: "host" | "student";
+  text: string;
+  timestamp: number;
+  avatar?: string;
+};
+
 export type Snapshot = {
   session: {
     id: number;
@@ -184,6 +194,14 @@ export type Snapshot = {
   >;
   /** Real-time Question Palette summary for host/teacher monitoring */
   palette?: LivePaletteItem[];
+  /** Player IDs who are ready for the next question */
+  readyPlayers?: number[];
+  readyCount?: number;
+  /** Limited live text chat for lobby and session */
+  chat?: {
+    enabled: boolean;
+    messages: LiveChatMessage[];
+  };
 };
 
 export function isAnswerCorrect(q: LiveQuestion, answer: unknown): boolean {

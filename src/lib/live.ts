@@ -25,7 +25,62 @@ export {
   computePoints,
   generatePin,
 } from "./quiz-settings";
-export type { QuizSettings, LiveQuestion, Snapshot, LivePaletteItem } from "./quiz-settings";
+export type { QuizSettings, LiveQuestion, Snapshot, LivePaletteItem, LiveChatMessage } from "./quiz-settings";
+
+// In-memory tracker for players who pressed "Ready" for next question
+const sessionReadyMap = new Map<number, Set<number>>();
+
+// In-memory tracker for live session text chat (limited to last 40 messages per session)
+const sessionChatMap = new Map<number, LiveChatMessage[]>();
+const sessionChatEnabledMap = new Map<number, boolean>();
+
+export function getSessionChatMessages(sessionId: number): LiveChatMessage[] {
+  return sessionChatMap.get(sessionId) ?? [];
+}
+
+export function isSessionChatEnabled(sessionId: number): boolean {
+  return sessionChatEnabledMap.get(sessionId) ?? true;
+}
+
+export function setSessionChatEnabled(sessionId: number, enabled: boolean) {
+  sessionChatEnabledMap.set(sessionId, enabled);
+}
+
+export function addSessionChatMessage(sessionId: number, msg: LiveChatMessage): LiveChatMessage[] {
+  let list = sessionChatMap.get(sessionId);
+  if (!list) {
+    list = [];
+    sessionChatMap.set(sessionId, list);
+  }
+  list.push(msg);
+  if (list.length > 40) {
+    list.splice(0, list.length - 40);
+  }
+  return list;
+}
+
+export function clearSessionChat(sessionId: number) {
+  sessionChatMap.delete(sessionId);
+  sessionChatEnabledMap.delete(sessionId);
+}
+
+export function setPlayerReady(sessionId: number, playerId: number, ready = true) {
+  let set = sessionReadyMap.get(sessionId);
+  if (!set) {
+    set = new Set<number>();
+    sessionReadyMap.set(sessionId, set);
+  }
+  if (ready) set.add(playerId);
+  else set.delete(playerId);
+}
+
+export function clearReadyPlayers(sessionId: number) {
+  sessionReadyMap.delete(sessionId);
+}
+
+export function getReadyPlayers(sessionId: number): number[] {
+  return Array.from(sessionReadyMap.get(sessionId) ?? []);
+}
 
 function normalizeJsonArray<T = unknown>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
@@ -314,5 +369,11 @@ export async function buildSnapshot(pin: string, viewerPlayerId?: number): Promi
         : outcomes
       : {},
     palette: viewerPlayerId ? undefined : palette,
+    readyPlayers: getReadyPlayers(session.id),
+    readyCount: getReadyPlayers(session.id).length,
+    chat: {
+      enabled: isSessionChatEnabled(session.id),
+      messages: getSessionChatMessages(session.id),
+    },
   };
 }

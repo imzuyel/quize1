@@ -15,10 +15,15 @@ import {
   QuizResultFeedbackCard,
   type CompletedQuizInfo,
 } from "@/components/quiz-result-feedback-card";
+import {
+  AnimatedLevelProgressBar,
+  AchievementPopupModal,
+  type AchievementItem,
+} from "@/components/student-level-and-badge-effects";
 
 type Data = {
   results: { id: number; title: string; score: number; accuracy: number; rank: number; createdAt: string; quizId: number }[];
-  achievements: { id: number; name: string; nameBn: string | null; icon: string }[];
+  achievements: { id: number; name: string; nameBn: string | null; icon: string; xp?: number; description?: string | null }[];
   rank: number;
   xp: number;
   completedExams: number;
@@ -38,9 +43,31 @@ export default function StudentDashboard() {
   const [pinInput, setPinInput] = useState("");
   const [recentQuiz, setRecentQuiz] = useState<CompletedQuizInfo | null>(null);
   const [dismissedQuiz, setDismissedQuiz] = useState(false);
+  const [newAchievement, setNewAchievement] = useState<AchievementItem | null>(null);
 
   useEffect(() => {
-    fetch("/api/analytics?scope=student").then(async (r) => r.ok && setData(await r.json()));
+    fetch("/api/analytics?scope=student").then(async (r) => {
+      if (r.ok) {
+        const resData: Data = await r.json();
+        setData(resData);
+        // Check for unseen achievements to trigger pop-up celebration
+        try {
+          const rawSeen = localStorage.getItem("pg_seen_badge_ids");
+          const seenIds: number[] = rawSeen ? JSON.parse(rawSeen) : [];
+          const newlyEarned = resData.achievements?.find((a) => !seenIds.includes(a.id));
+          if (newlyEarned) {
+            setNewAchievement({
+              id: newlyEarned.id,
+              name: newlyEarned.name,
+              nameBn: newlyEarned.nameBn,
+              icon: newlyEarned.icon,
+              xp: newlyEarned.xp ?? 50,
+              description: newlyEarned.description ?? "অসাধারণ পারফরম্যান্সের জন্য এই বিশেষ ব্যাজটি প্রদান করা হলো!",
+            });
+          }
+        } catch {}
+      }
+    });
     fetch("/api/quizzes").then(async (r) => r.ok && setQuizzes((await r.json()).rows.slice(0, 5)));
 
     try {
@@ -54,6 +81,19 @@ export default function StudentDashboard() {
       }
     } catch {}
   }, []);
+
+  const handleCloseAchievement = () => {
+    if (newAchievement) {
+      try {
+        const rawSeen = localStorage.getItem("pg_seen_badge_ids");
+        const seenIds: number[] = rawSeen ? JSON.parse(rawSeen) : [];
+        if (!seenIds.includes(newAchievement.id)) {
+          localStorage.setItem("pg_seen_badge_ids", JSON.stringify([...seenIds, newAchievement.id]));
+        }
+      } catch {}
+    }
+    setNewAchievement(null);
+  };
 
   const activeQuizResult: CompletedQuizInfo | null = useMemo(() => {
     if (dismissedQuiz) return null;
@@ -129,25 +169,12 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/15 bg-white/10 p-5 text-center backdrop-blur shadow-xl min-w-[200px]">
-            <p className="text-xs uppercase font-extrabold tracking-widest text-slate-300">আমার বর্তমান লেভেল</p>
-            <p className="mt-1 text-2xl font-black text-[var(--pg-gold)]">{level.bn}</p>
-            <p className="mt-1 text-xs font-semibold text-teal-300">{data.xp} XP অর্জিত</p>
-            {next ? (
-              <div className="mt-3">
-                <div className="flex justify-between text-[10px] text-white/70 mb-1">
-                  <span>পরবর্তী: {next.bn}</span>
-                  <span>{next.min - data.xp} XP বাকি</span>
-                </div>
-                <div className="h-2 w-36 overflow-hidden rounded-full bg-white/20">
-                  <div
-                    className="h-full bg-gradient-to-r from-teal-400 to-amber-300"
-                    style={{ width: `${Math.min(100, ((data.xp - level.min) / (next.min - level.min)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            ) : null}
-          </div>
+          {/* Animated Level Progress with Smooth Bar & Shimmer */}
+          <AnimatedLevelProgressBar
+            currentXp={data.xp}
+            currentLevel={level}
+            nextLevel={next}
+          />
         </div>
       </div>
 
@@ -189,7 +216,37 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard label="সম্পন্ন কুইজ" value={data.completedExams} icon="📝" tone="blue" />
         <StatCard label="আমার র‍্যাংক" value={`#${data.rank}`} icon="🏅" tone="gold" />
-        <StatCard label="অর্জন" value={data.achievements.length} icon="🏆" tone="coral" />
+        <div className="col-span-2 lg:col-span-1 rounded-2xl border border-[var(--pg-line)] bg-white p-4 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500">মোট অর্জন</p>
+              <p className="mt-1 text-2xl font-black text-slate-900">{data.achievements.length} টি ব্যাজ</p>
+            </div>
+            <span className="text-3xl">🏆</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+            <Link href="/student/achievements" className="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+              সব ব্যাজ দেখুন →
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                const sampleBadge = data.achievements[0] || {
+                  id: 999,
+                  name: "Quiz Champion",
+                  nameBn: "কুইজ চ্যাম্পিয়ন",
+                  icon: "👑",
+                  xp: 100,
+                  description: "ধারাবাহিক ভালো পারফরম্যান্স ও শীর্ষ স্থানে পৌঁছানোর জন্য বিশেষ স্বীকৃতি!",
+                };
+                setNewAchievement(sampleBadge);
+              }}
+              className="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+            >
+              🎉 অ্যানিমেশন প্রিভিউ
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -227,6 +284,12 @@ export default function StudentDashboard() {
           )}
         </Card>
       </div>
+
+      {/* Achievement / Badge Unlocked Celebration Modal */}
+      <AchievementPopupModal
+        achievement={newAchievement}
+        onClose={handleCloseAchievement}
+      />
     </div>
   );
 }

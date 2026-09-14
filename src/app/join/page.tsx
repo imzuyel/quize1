@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Button, Card, Field, Input, useToast } from "@/components/ui";
+import { FUN_AVATARS } from "@/lib/avatar";
 
 function JoinInner() {
   const router = useRouter();
@@ -13,11 +14,21 @@ function JoinInner() {
   const [pin, setPin] = useState(params.get("pin") ?? "");
   const [joinMode, setJoinMode] = useState<"code" | "keyword">("code");
   const [nickname, setNickname] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState("🦁");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("pg_nickname");
-    if (saved) setNickname(saved);
+    if (saved) {
+      // If starts with emoji, extract avatar
+      const first = saved.split(" ")[0];
+      if (FUN_AVATARS.some((a) => a.emoji === first)) {
+        setSelectedAvatar(first);
+        setNickname(saved.slice(first.length).trim());
+      } else {
+        setNickname(saved);
+      }
+    }
   }, []);
 
   const join = async (e: React.FormEvent) => {
@@ -25,13 +36,15 @@ function JoinInner() {
     setLoading(true);
     try {
       const joinKey = pin.trim();
+      const rawName = nickname.trim();
+      const fullNickname = rawName ? `${selectedAvatar} ${rawName}` : selectedAvatar;
       const res = await fetch("/api/live", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           action: "join",
           ...(joinMode === "code" ? { pin: joinKey } : { keyword: joinKey }),
-          nickname: nickname.trim(),
+          nickname: fullNickname,
           // Reuse the player record after refresh instead of creating a second
           // lobby entry for the same browser.
           playerId: localStorage.getItem(`pg_player_${joinKey}`) ?? undefined,
@@ -40,9 +53,9 @@ function JoinInner() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "যোগ দেওয়া যায়নি");
       const canonicalPin = String(data.pin || joinKey);
-      localStorage.setItem("pg_nickname", String(data.nickname || nickname.trim()));
+      localStorage.setItem("pg_nickname", String(data.nickname || fullNickname));
       localStorage.setItem(`pg_player_${canonicalPin}`, String(data.playerId));
-      localStorage.setItem(`pg_player_nickname_${canonicalPin}`, String(data.nickname || nickname.trim()));
+      localStorage.setItem(`pg_player_nickname_${canonicalPin}`, String(data.nickname || fullNickname));
       router.push(`/play/${encodeURIComponent(canonicalPin)}`);
     } catch (err) {
       push(err instanceof Error ? err.message : "সমস্যা হয়েছে", "error");
@@ -101,12 +114,36 @@ function JoinInner() {
                 required
               />
             </Field>
+            <Field label="আপনার অবতার (Avatar) বেছে নিন">
+              <div className="flex flex-wrap gap-2 justify-center p-2 rounded-2xl bg-indigo-50/70 border border-indigo-100">
+                {FUN_AVATARS.map((av) => (
+                  <button
+                    key={av.emoji}
+                    type="button"
+                    onClick={() => setSelectedAvatar(av.emoji)}
+                    className={`grid h-10 w-10 place-items-center rounded-xl text-xl transition-transform ${
+                      selectedAvatar === av.emoji
+                        ? "bg-white shadow-md ring-2 ring-indigo-500 scale-110"
+                        : "hover:bg-white/60 hover:scale-105"
+                    }`}
+                  >
+                    {av.emoji}
+                  </button>
+                ))}
+              </div>
+            </Field>
             <Field label="আপনার নাম / নিকনেম (ঐচ্ছিক)">
-              <Input
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value.slice(0, 28))}
-                placeholder="ফাঁকা রাখলে যেমন: স্মার্ট পান্ডা 47"
-              />
+              <div className="flex items-center gap-2">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-indigo-100 text-2xl shadow-inner">
+                  {selectedAvatar}
+                </span>
+                <Input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value.slice(0, 28))}
+                  placeholder="ফাঁকা রাখলে যেমন: স্মার্ট পান্ডা 47"
+                  className="flex-1"
+                />
+              </div>
             </Field>
             <p className="-mt-2 text-xs font-medium text-slate-500">নাম না দিলেও সমস্যা নেই—সিস্টেম নিজে একটি সুন্দর নিকনেম তৈরি করবে।</p>
             <Button type="submit" block size="lg" loading={loading}>

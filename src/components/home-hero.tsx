@@ -5,51 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { triggerAppLoading } from "./top-loader";
 
-const ROTATING_WORDS = [
-  {
-    word: "রোমাঞ্চকর কুইজ লড়াই ⚡",
-    color: "from-teal-300 via-cyan-400 to-emerald-400",
-    glow: "rgba(45, 212, 191, 0.6)",
-    pillBg: "bg-teal-500/15 border-teal-400/40 text-teal-300",
-    desc: "প্রজেক্টরে লাইভ প্রশ্ন আর মোবাইলে দ্রুততম উত্তরের মেধার প্রতিযোগিতা",
-  },
-  {
-    word: "রিয়েল-টাইম গেমিং ব্যাটল 🎮",
-    color: "from-fuchsia-300 via-pink-400 to-rose-400",
-    glow: "rgba(236, 72, 153, 0.6)",
-    pillBg: "bg-pink-500/15 border-pink-400/40 text-pink-300",
-    desc: "৫০ms আল্ট্রা-ফাস্ট সিঙ্কে পুরো ক্লাসের সাথে মুখোমুখি মেধার লড়াই",
-  },
-  {
-    word: "স্পিড বোনাস পয়েন্ট ফাইট 🔥",
-    color: "from-amber-300 via-orange-400 to-rose-500",
-    glow: "rgba(245, 158, 11, 0.6)",
-    pillBg: "bg-amber-500/15 border-amber-400/40 text-amber-300",
-    desc: "বাকি প্রতি মিলিসেকেন্ডের জন্য এক্সট্রা বোনাস ও লাইটনিং স্ট্রিক পয়েন্ট",
-  },
-  {
-    word: "চ্যাম্পিয়ন ট্রফি বিজয় 🏆",
-    color: "from-yellow-300 via-amber-300 to-yellow-500",
-    glow: "rgba(250, 204, 21, 0.6)",
-    pillBg: "bg-yellow-500/15 border-yellow-400/40 text-yellow-300",
-    desc: "১ম, ২য় ও ৩য় স্থানের জন্য রয়্যাল পোডিয়াম, কনফেটি ও ডিজিটাল ট্রফি",
-  },
-  {
-    word: "তীব্র রিফ্লেক্স চ্যালেঞ্জ 🚀",
-    color: "from-cyan-300 via-sky-400 to-indigo-400",
-    glow: "rgba(56, 189, 248, 0.6)",
-    pillBg: "bg-sky-500/15 border-sky-400/40 text-sky-300",
-    desc: "ঝটপট সঠিক রঙের বাটনে চাপ দিয়ে সবাইকে ছাড়িয়ে যাওয়ার আনন্দ",
-  },
-  {
-    word: "ইনস্ট্যান্ট লিডারবোর্ড 👑",
-    color: "from-violet-300 via-purple-400 to-fuchsia-400",
-    glow: "rgba(168, 85, 247, 0.6)",
-    pillBg: "bg-purple-500/15 border-purple-400/40 text-purple-300",
-    desc: "প্রতিটি প্রশ্নের সাথে সাথে লাইভ র‍্যাঙ্কিং পরিবর্তন ও পোডিয়াম সেলিব্রেশন",
-  },
-];
-
 export function HomeHero({
   signedIn,
   userRole,
@@ -58,25 +13,9 @@ export function HomeHero({
   userRole?: string;
 }) {
   const router = useRouter();
-  const [wordIndex, setWordIndex] = useState(0);
-  const [animating, setAnimating] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
   const [joining, setJoining] = useState(false);
-
-  // Word slider timer (changes only the colored word, keeps website blazing fast)
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAnimating(true);
-      setTimeout(() => {
-        setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
-        setAnimating(false);
-      }, 200);
-    }, 2800);
-    return () => clearInterval(timer);
-  }, []);
-
-  const current = ROTATING_WORDS[wordIndex];
 
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,58 +34,62 @@ export function HomeHero({
     <section className="relative w-full overflow-hidden bg-[#060a1e] text-white pt-10 pb-20 sm:pt-14 sm:pb-28">
       {/* Full Screen Immersive Ambient Backdrop Glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[95vw] max-w-[1500px] rounded-full bg-gradient-to-tr from-violet-600/25 via-teal-500/25 to-cyan-500/20 blur-[140px]" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[95vw] max-w-[1500px] rounded-full bg-gradient-to-tr from-violet-600/30 via-teal-500/25 to-cyan-500/20 blur-[140px]" />
         <div className="absolute top-1/3 -left-32 h-[480px] w-[480px] rounded-full bg-teal-500/20 blur-[140px]" />
-        <div className="absolute top-1/2 -right-32 h-[480px] w-[480px] rounded-full bg-amber-500/15 blur-[140px]" />
+        <div className="absolute top-1/2 -right-32 h-[480px] w-[480px] rounded-full bg-amber-500/20 blur-[140px]" />
         <div className="pg-grid-lines absolute inset-0 opacity-30" />
       </div>
 
       <div className="relative w-full px-4 sm:px-8 lg:px-12 xl:px-16 max-w-[1700px] mx-auto">
         {/* Top Feature Pill Bar */}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/15 px-4 py-1.5 text-xs font-black text-teal-300 backdrop-blur-xl shadow-lg shadow-teal-950/40">
+          <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/15 px-4 py-1.5 text-xs font-black text-teal-300 backdrop-blur-xl shadow-lg shadow-teal-950/40 ring-1 ring-teal-400/30">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400" />
             </span>
-            <span>লাইভ ক্লাসরুম কুইজ গেমিং প্ল্যাটফর্ম</span>
+            <span>লাইভ ক্লাসরুম কুইজ ও মেধার লড়াই</span>
           </span>
 
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold backdrop-blur-xl transition-all duration-300 ${current.pillBg}`}
-          >
-            <span>{current.desc}</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/15 px-3.5 py-1.5 text-xs font-bold text-amber-300 backdrop-blur-xl">
+            <span>⚡ ৫০ms আল্ট্রা-ফাস্ট সিঙ্ক</span>
+          </span>
+
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-pink-400/30 bg-pink-500/15 px-3.5 py-1.5 text-xs font-bold text-pink-300 backdrop-blur-xl">
+            <span>🏆 লাইভ পোডিয়াম ও রয়্যাল ট্রফি</span>
           </span>
         </div>
 
-        {/* Word Slider Hero Headline: Fixed Main Text + Dynamic Rotating Word in Different Color */}
+        {/* Beautiful Glowing Colorful Hero Headline (No Slider) */}
         <div className="mt-8 text-center max-w-5xl mx-auto">
-          <h1 className="text-3xl font-black leading-tight sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-white flex flex-col sm:flex-row flex-wrap items-center justify-center gap-x-3 gap-y-2">
-            {/* 1. Main fixed text */}
-            <span className="text-white drop-shadow-sm">
+          <h1 className="text-3xl font-black leading-tight sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-white flex flex-col items-center justify-center gap-y-3">
+            {/* 1. Main line */}
+            <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
               লাইভ ক্লাসরুমে বন্ধুদের সাথে
             </span>
 
-            {/* 2. Word Slider: Changing word in another vibrant color */}
-            <span className="relative inline-flex items-center justify-center px-4 py-1 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl overflow-hidden ring-1 ring-white/15">
+            {/* 2. Glowing Colorful Text */}
+            <span className="relative inline-block mt-1">
+              {/* Backlight Ambient Glow Layer */}
               <span
-                key={current.word}
-                className={`bg-gradient-to-r ${current.color} bg-clip-text text-transparent font-black tracking-wide transition-all duration-300 ${
-                  animating ? "opacity-0 translate-y-3" : "opacity-100 translate-y-0"
-                }`}
+                aria-hidden="true"
+                className="absolute inset-0 select-none blur-2xl opacity-60 bg-gradient-to-r from-teal-400 via-pink-400 to-amber-400"
+              />
+              <span
+                className="relative bg-gradient-to-r from-teal-200 via-cyan-300 via-pink-300 to-amber-300 bg-clip-text text-transparent font-black tracking-wide"
                 style={{
-                  filter: `drop-shadow(0 0 24px ${current.glow})`,
+                  filter: "drop-shadow(0 0 35px rgba(45,212,191,0.55)) drop-shadow(0 0 70px rgba(244,114,182,0.35))",
                 }}
               >
-                {current.word}
+                রোমাঞ্চকর কুইজ ও গেমিং লড়াই ⚡
               </span>
             </span>
           </h1>
 
-          <p className="mt-5 text-base sm:text-xl md:text-2xl font-bold text-slate-200 max-w-3xl mx-auto leading-relaxed">
+          <p className="mt-6 text-base sm:text-xl md:text-2xl font-bold text-slate-100 max-w-3xl mx-auto leading-relaxed drop-shadow-md">
             প্রজেক্টরে বড় পর্দায় প্রশ্ন আর মোবাইলের রঙিন বাটনে দ্রুততম উত্তরের মেধার প্রতিযোগিতা!
           </p>
-          <p className="mt-2 text-xs sm:text-sm text-slate-400 font-medium max-w-2xl mx-auto">
+          <p className="mt-2.5 text-xs sm:text-sm text-teal-200/90 font-semibold max-w-2xl mx-auto tracking-wide">
             কোনো অ্যাপ বা পাসওয়ার্ডের ঝামেলা নেই · যেকোনো ডিভাইসে ৬ সংখ্যার পিন দিয়ে তাৎক্ষণিক অংশগ্রহণ
           </p>
         </div>

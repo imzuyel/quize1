@@ -22,6 +22,13 @@ import {
   isAnswerCorrect,
   loadQuizQuestions,
   mergeSettings,
+  setPlayerReady,
+  clearReadyPlayers,
+  addSessionChatMessage,
+  isSessionChatEnabled,
+  setSessionChatEnabled,
+  clearSessionChat,
+  type LiveChatMessage,
 } from "@/lib/live";
 import { clearScheduled, publish, rateLimit, scheduleFor } from "@/lib/realtime";
 import { getFeatures } from "@/lib/features";
@@ -33,6 +40,8 @@ export const dynamic = "force-dynamic";
 
 export async function deleteSessionRecord(sessionId: number, pin: string, userId: number, quizId: number) {
   clearScheduled(`reveal:${pin}`);
+  clearSessionChat(sessionId);
+  clearReadyPlayers(sessionId);
   publish(`session:${pin}`, "deleted", { pin, deleted: true, message: "এই লাইভ সেশনটি ডিলিট করা হয়েছে" });
 
   await db.delete(playerAnswers).where(eq(playerAnswers.sessionId, sessionId));
@@ -396,15 +405,94 @@ export async function POST(req: Request) {
       return ok({ ok: true });
     }
 
+    /* ------------------------------ player ready ------------------------------ */
+    if (action === "ready" || action === "player_ready") {
+      const playerId = Number(body.playerId);
+      if (playerId) {
+        setPlayerReady(session.id, playerId, body.ready !== false);
+        await broadcast(canonicalPin);
+      }
+      return ok({ ok: true, ready: true });
+    }
+
+    /* --------------------------------- chat --------------------------------- */
+    if (action === "chat") {
+      const isHost = canControlSession;
+      const chatEnabled = isSessionChatEnabled(session.id);
+      if (!isHost && !chatEnabled) {
+        return fail("হোস্ট চ্যাট সাময়িকভাবে বন্ধ রেখেছেন", 403);
+      }
+
+      const rawText = String(body.text ?? "").trim();
+      if (!rawText) return fail("বার্তার টেক্সট খালি হতে পারে না", 400);
+
+      // Limited text chat: max 100 characters per message
+      const text = rawText.slice(0, 100);
+
+      const senderRole: "host" | "student" = isHost ? "host" : "student";
+      const senderName = String(body.senderName || (isHost ? "হোস্ট" : "শিক্ষার্থী")).slice(0, 40);
+      const playerId = body.playerId ? Number(body.playerId) : undefined;
+      const avatar = body.avatar ? String(body.avatar).slice(0, 20) : undefined;
+
+      // Rate limit for students: max 2 messages per 5 seconds to prevent spamming
+      if (!isHost) {
+        const rateKey = playerId ? `chat:${session.id}:${playerId}` : `chat:${session.id}:${senderName}`;
+        if (!rateLimit(rateKey, 2, 5_000)) {
+          return fail("খুব দ্রুত বার্তা পাঠাচ্ছেন! কিছুক্ষণ অপেক্ষা করুন।", 429);
+        }
+      }
+
+      const newMsg: LiveChatMessage = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        senderId: playerId,
+        senderName,
+        senderRole,
+        text,
+        timestamp: Date.now(),
+        avatar,
+      };
+
+      addSessionChatMessage(session.id, newMsg);
+
+      publish(`session:${canonicalPin}`, "chat", {
+        message: newMsg,
+        enabled: chatEnabled,
+      });
+
+      return ok({ ok: true, message: newMsg });
+    }
+
+    /* ----------------------------- toggle chat ----------------------------- */
+    if (action === "toggle_chat") {
+      if (!canControlSession) return fail("এই লাইভ সেশন পরিচালনার অনুমতি নেই", 403);
+      const current = isSessionChatEnabled(session.id);
+      const nextState = typeof body.enabled === "boolean" ? body.enabled : !current;
+      setSessionChatEnabled(session.id, nextState);
+
+      publish(`session:${canonicalPin}`, "chat_toggle", { enabled: nextState });
+      await broadcast(canonicalPin);
+
+      return ok({ ok: true, enabled: nextState });
+    }
+
     /* ------------------------------ controls ------------------------------ */
     if (action === "control") {
       if (!canControlSession) return fail("এই লাইভ সেশন পরিচালনার অনুমতি নেই", 403);
       const cmd = String(body.command ?? "");
+      if (cmd === "toggle_chat") {
+        const current = isSessionChatEnabled(session.id);
+        const nextState = typeof body.enabled === "boolean" ? body.enabled : !current;
+        setSessionChatEnabled(session.id, nextState);
+        publish(`session:${canonicalPin}`, "chat_toggle", { enabled: nextState });
+        await broadcast(canonicalPin);
+        return ok({ ok: true, chatEnabled: nextState });
+      }
       const list = await loadQuizQuestions(session.quizId);
       const settings = mergeSettings(session.settings);
       const startQuestion = async (index: number) => {
         const q = list[index];
         if (!q) return;
+        clearReadyPlayers(session.id);
         const seconds = settings.timerMode === "global" ? settings.globalTimer : q.timer;
         const now = new Date();
         const endsAt = new Date(now.getTime() + seconds * 1000);
@@ -424,16 +512,23 @@ export async function POST(req: Request) {
 
       switch (cmd) {
         case "start":
-          // Keep joining open after the quiz begins. The teacher can use the
-          // dedicated lock-lobby control when late entry really must stop.
+          clearReadyPlayers(session.id);
+          // Broadcast countdown state so host and player screens show 3-2-1 countdown
           await db
             .update(quizSessions)
             .set({ state: "countdown" })
             .where(eq(quizSessions.id, session.id));
           await broadcast(pin);
-          await startQuestion(0);
+          // Allow countdown animation to play on all connected devices, then launch question 1
+          setTimeout(async () => {
+            try {
+              await startQuestion(0);
+              await broadcast(pin);
+            } catch {}
+          }, 3200);
           break;
         case "next": {
+          clearReadyPlayers(session.id);
           const nextIndex = session.currentIndex + 1;
           if (nextIndex >= list.length) {
             await finishSession(session.id, pin);
@@ -443,13 +538,16 @@ export async function POST(req: Request) {
           break;
         }
         case "prev":
+          clearReadyPlayers(session.id);
           await startQuestion(Math.max(0, session.currentIndex - 1));
           break;
         case "skip":
+          clearReadyPlayers(session.id);
           await startQuestion(Math.min(list.length - 1, session.currentIndex + 1));
           break;
         case "jump":
         case "goToQuestion": {
+          clearReadyPlayers(session.id);
           const targetIndex = Math.max(0, Math.min(list.length - 1, Number(body.index ?? body.questionIndex ?? 0)));
           await startQuestion(targetIndex);
           break;
@@ -466,7 +564,11 @@ export async function POST(req: Request) {
           await db.update(quizSessions).set({ state: "answer_reveal" }).where(eq(quizSessions.id, session.id));
           break;
         case "leaderboard":
+          clearScheduled(`reveal:${pin}`);
           await db.update(quizSessions).set({ state: "leaderboard" }).where(eq(quizSessions.id, session.id));
+          break;
+        case "returnToQuestion":
+          await db.update(quizSessions).set({ state: "answer_reveal" }).where(eq(quizSessions.id, session.id));
           break;
         case "toggleLeaderboard":
           await db

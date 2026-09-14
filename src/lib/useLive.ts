@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Snapshot } from "./quiz-settings";
+import type { Snapshot, LiveChatMessage } from "./quiz-settings";
 
 export type LiveStatus = "connecting" | "connected" | "reconnecting" | "offline";
 
@@ -9,6 +9,8 @@ export function useLiveSession(pin: string) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [status, setStatus] = useState<LiveStatus>("connecting");
   const [reactions, setReactions] = useState<{ id: number; emoji: string }[]>([]);
+  const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
+  const [chatEnabled, setChatEnabled] = useState(true);
   const [isDeleted, setIsDeleted] = useState(false);
   const [deletedMessage, setDeletedMessage] = useState("");
   const esRef = useRef<EventSource | null>(null);
@@ -16,6 +18,14 @@ export function useLiveSession(pin: string) {
   const counter = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectRef = useRef<() => void>(() => {});
+
+  // Sync chat state whenever snapshot arrives
+  useEffect(() => {
+    if (snapshot?.chat) {
+      setChatMessages(snapshot.chat.messages ?? []);
+      setChatEnabled(snapshot.chat.enabled ?? true);
+    }
+  }, [snapshot?.chat]);
 
   const connect = useCallback(() => {
     if (!pin || isDeleted) return;
@@ -61,6 +71,32 @@ export function useLiveSession(pin: string) {
         const id = ++counter.current;
         setReactions((r) => [...r.slice(-14), { id, emoji: data.emoji }]);
         setTimeout(() => setReactions((r) => r.filter((x) => x.id !== id)), 1600);
+      } catch {
+        /* ignore */
+      }
+    });
+    es.addEventListener("chat", (e) => {
+      try {
+        const data = JSON.parse((e as MessageEvent).data) as { message?: LiveChatMessage; enabled?: boolean };
+        if (data?.message) {
+          setChatMessages((prev) => {
+            if (prev.some((m) => m.id === data.message!.id)) return prev;
+            return [...prev.slice(-39), data.message!];
+          });
+        }
+        if (typeof data?.enabled === "boolean") {
+          setChatEnabled(data.enabled);
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+    es.addEventListener("chat_toggle", (e) => {
+      try {
+        const data = JSON.parse((e as MessageEvent).data) as { enabled: boolean };
+        if (typeof data?.enabled === "boolean") {
+          setChatEnabled(data.enabled);
+        }
       } catch {
         /* ignore */
       }
@@ -119,7 +155,50 @@ export function useLiveSession(pin: string) {
     }
   }, [pin, isDeleted]);
 
-  return { snapshot, status, reactions, refresh, isDeleted, deletedMessage };
+  const sendChatMessage = useCallback(
+    async (
+      text: string,
+      senderName: string,
+      senderRole: "host" | "student",
+      playerId?: number,
+      avatar?: string,
+    ) => {
+      return liveAction({
+        action: "chat",
+        pin,
+        text,
+        senderName,
+        senderRole,
+        playerId,
+        avatar,
+      });
+    },
+    [pin],
+  );
+
+  const toggleChat = useCallback(
+    async (enabled?: boolean) => {
+      return liveAction({
+        action: "toggle_chat",
+        pin,
+        enabled,
+      });
+    },
+    [pin],
+  );
+
+  return {
+    snapshot,
+    status,
+    reactions,
+    refresh,
+    isDeleted,
+    deletedMessage,
+    chatMessages,
+    chatEnabled,
+    sendChatMessage,
+    toggleChat,
+  };
 }
 
 export async function liveAction(body: Record<string, unknown>) {

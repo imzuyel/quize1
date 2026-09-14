@@ -519,8 +519,12 @@ html.dark body { background:var(--pg-mist); color:var(--pg-ink); }
 html.dark .pg-surface { background:#0e1a29; border-color:#24364a; }
 html.dark .pg-glass { background:rgba(14,26,41,.78); border-color:rgba(255,255,255,.10); }
 html.dark input, html.dark textarea, html.dark select { background:#0d1927; color:#e8eef6; border-color:#294058; }
+html.dark .text-slate-400 { color:#94a3b8 !important; }
 html.dark .text-slate-500 { color:#9fb0c3 !important; }
-html.dark .text-slate-600 { color:#b7c4d2 !important; }
+html.dark .text-slate-600 { color:#cbd5e1 !important; }
+html.dark .text-slate-700 { color:#e2e8f0 !important; }
+html.dark .text-slate-800 { color:#f1f5f9 !important; }
+html.dark .text-slate-900 { color:#ffffff !important; }
 html.dark .bg-white { background:#0e1a29 !important; }
 html.dark .bg-slate-50 { background:#132236 !important; }
 html.dark .bg-slate-100 { background:#1a2a3e !important; }

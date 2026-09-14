@@ -12,6 +12,21 @@ import { liveAction, useLiveSession } from "@/lib/useLive";
 import { useClassroomSounds } from "@/components/live-effects";
 import { QuizResultFeedbackCard } from "@/components/quiz-result-feedback-card";
 import { QuizPlate } from "@/components/quiz-plate";
+import { PlayerReadyButton } from "@/components/live-readiness-tracker";
+import { AnimatedKahootLeaderboard } from "@/components/animated-kahoot-leaderboard";
+import { LiveCountdownOverlay } from "@/components/live-countdown-overlay";
+import { LiveSessionChat } from "@/components/live-session-chat";
+import { parsePlayerAvatar } from "@/lib/avatar";
+import {
+  LiveSmartCoachBanner,
+  Milestone5CheckpointModal,
+} from "@/components/live-smart-feedback";
+import {
+  getLivePerformanceRemark,
+  getMilestoneReview,
+  type LivePerformanceRemark,
+  type MilestoneReview,
+} from "@/lib/quiz-feedback";
 
 const SINGLE_CHOICE = ["mcq", "true_false", "image_choice", "scenario", "case_based", "hotspot", "audio", "video", "odd_one_out", "analogy"];
 function isSingleChoice(type: string) {
@@ -20,7 +35,7 @@ function isSingleChoice(type: string) {
 
 export default function PlayPage({ params }: { params: Promise<{ pin: string }> }) {
   const { pin } = use(params);
-  const { snapshot, status, reactions, isDeleted, deletedMessage } = useLiveSession(pin);
+  const { snapshot, status, reactions, isDeleted, deletedMessage, chatMessages, chatEnabled, sendChatMessage } = useLiveSession(pin);
   const { push } = useToast();
   const [playerId, setPlayerId] = useState<number | null>(null);
   const [answerValue, setAnswerValue] = useState<(string | number)[]>([]);
@@ -33,6 +48,28 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
   const [reportOpen, setReportOpen] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const sounds = useClassroomSounds(soundOn);
+
+  // Smart performance coaching & 5-question milestone states
+  const [performanceRemark, setPerformanceRemark] = useState<LivePerformanceRemark | null>(null);
+  const [milestoneReview, setMilestoneReview] = useState<MilestoneReview | null>(null);
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [consecutiveWrong, setConsecutiveWrong] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      return Number(sessionStorage.getItem(`pg_cw_${pin}`)) || 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [recentAnswers, setRecentAnswers] = useState<boolean[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = sessionStorage.getItem(`pg_ra_${pin}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     const id = localStorage.getItem(`pg_player_${pin}`);
@@ -52,9 +89,24 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
   const me = snapshot?.players.find((p) => p.id === playerId);
   const state = snapshot?.session.state ?? "lobby";
 
+  const isPlayerReady = Boolean(playerId && (snapshot?.readyPlayers ?? []).includes(playerId));
+  const handleToggleReady = async () => {
+    if (!playerId) return;
+    try {
+      await liveAction({
+        action: "ready",
+        pin,
+        playerId,
+        ready: !isPlayerReady,
+      });
+    } catch {}
+  };
+
   useEffect(() => {
     setAnswerValue([]);
     setHidden([]);
+    setPerformanceRemark(null);
+    setShowMilestoneModal(false);
     if (snapshot?.session.currentIndex !== undefined) sounds.countdown();
   }, [snapshot?.session.currentIndex]);
 
@@ -93,23 +145,70 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
   const outcome = playerId ? snapshot?.outcomes?.[playerId] : undefined;
   const revealedIndex = q?.revealed ? snapshot?.session.currentIndex : undefined;
 
-  // Fire the celebration/shake exactly once per revealed question.
+  // Fire the celebration/shake and smart performance remarks exactly once per revealed question.
   useEffect(() => {
     if (revealedIndex === undefined || !playerId) return;
     const key = `rv_${pin}_${revealedIndex}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
+
+    const isCorrect = Boolean(outcome?.correct);
+
     if (!outcome) {
       setRevealKind("timeout");
-      return;
+    } else {
+      setRevealKind(isCorrect ? "correct" : "wrong");
+      setRevealPoints(outcome.points);
+      if (outcome.points > 0) {
+        setScorePop(outcome.points);
+        setTimeout(() => setScorePop(0), 1600);
+      }
     }
-    setRevealKind(outcome.correct ? "correct" : "wrong");
-    setRevealPoints(outcome.points);
-    if (outcome.points > 0) {
-      setScorePop(outcome.points);
-      setTimeout(() => setScorePop(0), 1600);
+
+    // 1. Update streak & consecutive wrong tracker
+    const nextConsecutiveWrong = isCorrect ? 0 : consecutiveWrong + 1;
+    setConsecutiveWrong(nextConsecutiveWrong);
+    try {
+      sessionStorage.setItem(`pg_cw_${pin}`, String(nextConsecutiveWrong));
+    } catch {}
+
+    const nextRecentAnswers = [...recentAnswers, isCorrect].slice(-5);
+    setRecentAnswers(nextRecentAnswers);
+    try {
+      sessionStorage.setItem(`pg_ra_${pin}`, JSON.stringify(nextRecentAnswers));
+    } catch {}
+
+    // 2. Generate live praise or funny roast based on streaks
+    const currentStreak = isCorrect ? Math.max(1, (me?.streak ?? 0) + 1) : 0;
+    const remark = getLivePerformanceRemark({
+      correct: isCorrect,
+      streak: currentStreak,
+      consecutiveWrong: nextConsecutiveWrong,
+      responseMs: outcome?.responseMs,
+      questionNumber: revealedIndex + 1,
+    });
+    setPerformanceRemark(remark);
+
+    // 3. Milestone review every 5 questions: (revealedIndex + 1) % 5 === 0
+    if ((revealedIndex + 1) % 5 === 0) {
+      const ranked = [...(snapshot?.players ?? [])].sort((a, b) => b.score - a.score);
+      const myRankIdx = ranked.findIndex((p) => p.id === playerId);
+      const myRank = myRankIdx !== -1 ? myRankIdx + 1 : undefined;
+
+      const ms = getMilestoneReview({
+        questionIndex: revealedIndex,
+        score: (me?.score ?? 0) + (outcome?.points ?? 0),
+        rank: myRank,
+        totalPlayers: snapshot?.players.length ?? 1,
+        correctCount: (me?.correctCount ?? 0) + (isCorrect ? 1 : 0),
+        answeredCount: (me?.answeredCount ?? 0) + 1,
+        recent5Answers: nextRecentAnswers,
+      });
+      setMilestoneReview(ms);
+      // Automatically pop up milestone card on everyone's screen
+      setShowMilestoneModal(true);
     }
-  }, [revealedIndex, outcome, playerId, pin]);
+  }, [revealedIndex, outcome, playerId, pin, consecutiveWrong, recentAnswers, me, snapshot]);
 
   const submit = async () => {
     if (!playerId || !q) return;
@@ -202,35 +301,87 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
           </span>
         </header>
 
-        {state === "lobby" || state === "countdown" ? (
-          <Card className="anim-zoom overflow-hidden bg-white/95 text-center text-slate-900 shadow-2xl">
+        {state === "countdown" ? (
+          <LiveCountdownOverlay />
+        ) : null}
+
+        {state === "lobby" ? (
+          <Card className="anim-zoom overflow-hidden bg-white/95 text-center text-slate-900 shadow-2xl p-6 sm:p-8">
             <div className="mx-auto mb-4 max-w-md rounded-2xl bg-gradient-to-r from-slate-900 via-[var(--pg-deep)] to-slate-900 p-4 text-white">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">LIVE CLASSROOM</p>
               <p className="mt-1 text-3xl font-black tracking-[0.18em]">{pin}</p>
               <p className="mt-1 text-xs text-white/60">{snapshot?.players.length ?? 0} জন যোগ দিয়েছে</p>
             </div>
-            <div className="text-5xl">{state === "countdown" ? "🚀" : "⏳"}</div>
-            <h1 className="mt-3 text-xl font-extrabold">
-              {state === "countdown" ? "শুরু হচ্ছে…" : "শিক্ষকের অপেক্ষায়"}
+
+            {/* Current Player Avatar Display */}
+            {me && (
+              <div className="my-6 inline-flex flex-col items-center">
+                {(() => {
+                  const { avatar, name, bg } = parsePlayerAvatar(me.nickname, me.id);
+                  return (
+                    <div className="flex flex-col items-center">
+                      <div className={`grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br ${bg} text-4xl shadow-xl animate-bounce`}>
+                        {avatar}
+                      </div>
+                      <span className="mt-2 text-xl font-black text-slate-900">{name}</span>
+                      <span className="rounded-full bg-emerald-100 text-emerald-800 px-3 py-0.5 text-xs font-bold mt-1">
+                        ✓ সফলভাবে যোগ দিয়েছেন
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            <h1 className="mt-1 text-xl sm:text-2xl font-black text-slate-900">
+              শিক্ষকের অপেক্ষায়…
             </h1>
             <p className="mt-1 text-sm text-slate-500">
               {snapshot?.quiz.title} · {snapshot?.session.total} প্রশ্ন
             </p>
-            <p className="mt-3 text-sm">
-              অংশগ্রহণকারী: <b>{snapshot?.players.length ?? 0}</b>
+            <p className="mt-2 text-xs font-semibold text-indigo-600">
+              শিক্ষক কুইজ শুরু করলে আপনার স্ক্রিনে স্বয়ংক্রিয়ভাবে প্রথম প্রশ্ন আসবে
             </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-              {snapshot?.players.slice(0, 24).map((p) => (
-                <span
-                  key={p.id}
-                  className={cx(
-                    "anim-pop rounded-full px-2.5 py-1 text-xs font-semibold",
-                    p.id === playerId ? "bg-[var(--pg-teal)] text-white" : "bg-slate-100",
-                  )}
-                >
-                  {p.nickname}
-                </span>
-              ))}
+
+            <div className="mt-6 border-t pt-4">
+              <p className="text-xs font-bold text-slate-400 mb-2">অন্যান্য সহপাঠী ({snapshot?.players.length ?? 0}):</p>
+              <div className="flex flex-wrap justify-center gap-2 max-h-36 overflow-y-auto p-1">
+                {snapshot?.players.map((p) => {
+                  const isMe = p.id === playerId;
+                  const { avatar, name, bg } = parsePlayerAvatar(p.nickname, p.id);
+                  return (
+                    <span
+                      key={p.id}
+                      className={cx(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold shadow-sm transition",
+                        isMe ? "bg-[var(--pg-deep)] text-white ring-2 ring-cyan-400" : "bg-slate-100 text-slate-700",
+                      )}
+                    >
+                      <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] bg-gradient-to-br ${bg}`}>
+                        {avatar}
+                      </span>
+                      <span>{name}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Live Lobby Text Chat for Student */}
+            <div className="mt-6 text-left">
+              <LiveSessionChat
+                pin={pin}
+                messages={chatMessages}
+                chatEnabled={chatEnabled}
+                isHost={false}
+                currentUserId={playerId ?? undefined}
+                currentUserName={me?.nickname ?? "শিক্ষার্থী"}
+                currentUserAvatar={me?.nickname}
+                onSendMessage={async (text) => {
+                  await sendChatMessage(text, me?.nickname ?? "শিক্ষার্থী", "student", playerId ?? undefined);
+                }}
+                variant="lobby-card"
+              />
             </div>
           </Card>
         ) : null}
@@ -387,6 +538,25 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
               </Card>
             ) : null}
 
+            {q.revealed && performanceRemark ? (
+              <div className="anim-fade">
+                <LiveSmartCoachBanner
+                  remark={performanceRemark}
+                  onDismiss={() => setPerformanceRemark(null)}
+                />
+              </div>
+            ) : null}
+
+            {q.revealed && milestoneReview && !showMilestoneModal ? (
+              <button
+                type="button"
+                onClick={() => setShowMilestoneModal(true)}
+                className="w-full rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 p-3 text-center text-xs font-black text-amber-200 shadow-sm transition hover:bg-amber-500/30"
+              >
+                🎯 প্রশ্ন {milestoneReview.milestoneNumber} মাইলস্টোন রিভিউ দেখুন (ক্লিক করুন)
+              </button>
+            ) : null}
+
             {q.revealed && q.explanation ? (
               <Card
                 className={cx(
@@ -426,22 +596,13 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
             ) : null}
 
             {q.revealed ? (
-              <div className="anim-fade rounded-2xl bg-white/10 px-4 py-3 text-center text-sm">
-                <span className="inline-flex items-center gap-2 font-semibold">
-                  <span className="flex gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <span
-                        key={i}
-                        className="h-1.5 w-1.5 rounded-full bg-white/70"
-                        style={{ animation: `pg-twinkle 1.2s ease-in-out ${i * 0.2}s infinite` }}
-                      />
-                    ))}
-                  </span>
-                  শিক্ষকের পরবর্তী প্রশ্নের অপেক্ষায়…
-                </span>
-                <p className="mt-1 text-xs text-white/60">
-                  {snapshot!.session.currentIndex + 1} / {snapshot!.session.total} সম্পন্ন
-                </p>
+              <div className="anim-fade space-y-3">
+                <PlayerReadyButton
+                  isReady={isPlayerReady}
+                  onToggleReady={handleToggleReady}
+                  readyCount={snapshot?.readyCount ?? (snapshot?.readyPlayers?.length ?? 0)}
+                  totalPlayers={snapshot?.players.length ?? 0}
+                />
               </div>
             ) : null}
 
@@ -455,10 +616,14 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
         ) : null}
 
         {state === "leaderboard" ? (
-          <Card className="anim-zoom bg-white/95 text-slate-900">
-            <h2 className="mb-3 text-center text-lg font-extrabold">🏆 লিডারবোর্ড</h2>
-            <Leaderboard rows={snapshot!.players} limit={settings?.leaderboardSize ?? 10} highlightId={playerId} />
-          </Card>
+          <div className="anim-zoom">
+            <AnimatedKahootLeaderboard
+              players={snapshot?.players ?? []}
+              currentIndex={snapshot?.session.currentIndex ?? 0}
+              totalQuestions={snapshot?.session.total ?? 0}
+              isHost={false}
+            />
+          </div>
         ) : null}
 
         {state === "quiz_complete" ? (
@@ -553,6 +718,18 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
         onDone={() => setRevealKind(null)}
       />
 
+      {/* 5-Question Milestone Modal on everyone's screen */}
+      {milestoneReview ? (
+        <Milestone5CheckpointModal
+          open={showMilestoneModal}
+          review={milestoneReview}
+          onContinue={() => {
+            setShowMilestoneModal(false);
+            if (!isPlayerReady) handleToggleReady();
+          }}
+        />
+      ) : null}
+
       <FeedbackModal
         open={feedbackOpen}
         onClose={() => setFeedbackOpen(false)}
@@ -567,6 +744,23 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
         quizId={snapshot?.quiz.id ?? 0}
         playerName={me?.nickname ?? "Guest"}
       />
+
+      {/* Floating Chat for Student during active quiz */}
+      {state !== "lobby" && (
+        <LiveSessionChat
+          pin={pin}
+          messages={chatMessages}
+          chatEnabled={chatEnabled}
+          isHost={false}
+          currentUserId={playerId ?? undefined}
+          currentUserName={me?.nickname ?? "শিক্ষার্থী"}
+          currentUserAvatar={me?.nickname}
+          onSendMessage={async (text) => {
+            await sendChatMessage(text, me?.nickname ?? "শিক্ষার্থী", "student", playerId ?? undefined);
+          }}
+          variant="floating"
+        />
+      )}
     </ThemeStage>
   );
 }
