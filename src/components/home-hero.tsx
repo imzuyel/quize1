@@ -4,18 +4,23 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { triggerAppLoading } from "./top-loader";
+import { DEFAULT_HERO_SETTINGS, type HeroSettings } from "@/lib/frontend-config";
 
 export function HomeHero({
   signedIn,
   userRole,
+  settings: heroProps,
 }: {
   signedIn: boolean;
   userRole?: string;
+  settings?: HeroSettings;
 }) {
   const router = useRouter();
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
   const [joining, setJoining] = useState(false);
+
+  const c = heroProps ?? DEFAULT_HERO_SETTINGS;
 
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,75 +36,113 @@ export function HomeHero({
   };
 
   return (
-    <section className="relative w-full overflow-hidden bg-[#060a1e] text-white pt-10 pb-20 sm:pt-14 sm:pb-28">
+    <section className="relative w-full overflow-hidden bg-[#060a1e] text-white pt-10 pb-20 sm:pt-16 sm:pb-32">
       {/* Full Screen Immersive Ambient Backdrop Glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[95vw] max-w-[1500px] rounded-full bg-gradient-to-tr from-violet-600/30 via-teal-500/25 to-cyan-500/20 blur-[140px]" />
-        <div className="absolute top-1/3 -left-32 h-[480px] w-[480px] rounded-full bg-teal-500/20 blur-[140px]" />
-        <div className="absolute top-1/2 -right-32 h-[480px] w-[480px] rounded-full bg-amber-500/20 blur-[140px]" />
+        <div
+          className="absolute -top-40 left-1/2 -translate-x-1/2 h-[700px] w-[95vw] max-w-[1600px] rounded-full blur-[150px] opacity-35 transition-all duration-700"
+          style={{
+            background: `radial-gradient(circle, ${c.color1} 0%, ${c.color2} 50%, ${c.color3} 100%)`,
+          }}
+        />
+        <div
+          className="absolute top-1/3 -left-32 h-[500px] w-[500px] rounded-full blur-[150px] opacity-25"
+          style={{ backgroundColor: c.color1 }}
+        />
+        <div
+          className="absolute top-1/2 -right-32 h-[500px] w-[500px] rounded-full blur-[150px] opacity-25"
+          style={{ backgroundColor: c.color3 }}
+        />
         <div className="pg-grid-lines absolute inset-0 opacity-30" />
       </div>
 
       <div className="relative w-full px-4 sm:px-8 lg:px-12 xl:px-16 max-w-[1700px] mx-auto">
         {/* Top Feature Pill Bar */}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/15 px-4 py-1.5 text-xs font-black text-teal-300 backdrop-blur-xl shadow-lg shadow-teal-950/40 ring-1 ring-teal-400/30">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400" />
+          {c.badge1 ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-500/15 px-4 py-1.5 text-xs sm:text-sm font-black text-teal-300 backdrop-blur-xl shadow-lg shadow-teal-950/40 ring-1 ring-teal-400/30">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-400" />
+              </span>
+              <span>{c.badge1}</span>
             </span>
-            <span>লাইভ ক্লাসরুম কুইজ ও মেধার লড়াই</span>
-          </span>
+          ) : null}
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/15 px-3.5 py-1.5 text-xs font-bold text-amber-300 backdrop-blur-xl">
-            <span>⚡ ৫০ms আল্ট্রা-ফাস্ট সিঙ্ক</span>
-          </span>
+          {c.badge2 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/15 px-4 py-1.5 text-xs sm:text-sm font-bold text-amber-300 backdrop-blur-xl">
+              <span>{c.badge2}</span>
+            </span>
+          ) : null}
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-pink-400/30 bg-pink-500/15 px-3.5 py-1.5 text-xs font-bold text-pink-300 backdrop-blur-xl">
-            <span>🏆 লাইভ পোডিয়াম ও রয়্যাল ট্রফি</span>
-          </span>
+          {c.badge3 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-pink-400/30 bg-pink-500/15 px-4 py-1.5 text-xs sm:text-sm font-bold text-pink-300 backdrop-blur-xl">
+              <span>{c.badge3}</span>
+            </span>
+          ) : null}
         </div>
 
-        {/* Beautiful Glowing Colorful Hero Headline (No Slider) */}
-        <div className="mt-8 text-center max-w-5xl mx-auto">
-          <h1 className="text-3xl font-black leading-tight sm:text-5xl md:text-6xl lg:text-7xl tracking-tight text-white flex flex-col items-center justify-center gap-y-3">
+        {/* Beautiful Glowing Multi-Color Hero Headline (Large Typography) */}
+        <div className="mt-10 text-center max-w-6xl mx-auto">
+          <h1 className="text-4xl font-black leading-[1.1] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[5.5rem] tracking-tight text-white flex flex-col items-center justify-center gap-y-3">
             {/* 1. Main line */}
-            <span className="text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
-              লাইভ ক্লাসরুমে বন্ধুদের সাথে
-            </span>
-
-            {/* 2. Glowing Colorful Text */}
-            <span className="relative inline-block mt-1">
-              {/* Backlight Ambient Glow Layer */}
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 select-none blur-2xl opacity-60 bg-gradient-to-r from-teal-400 via-pink-400 to-amber-400"
-              />
-              <span
-                className="relative bg-gradient-to-r from-teal-200 via-cyan-300 via-pink-300 to-amber-300 bg-clip-text text-transparent font-black tracking-wide"
-                style={{
-                  filter: "drop-shadow(0 0 35px rgba(45,212,191,0.55)) drop-shadow(0 0 70px rgba(244,114,182,0.35))",
-                }}
-              >
-                রোমাঞ্চকর কুইজ ও গেমিং লড়াই ⚡
+            {c.titleLine1 ? (
+              <span className="text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.9)]">
+                {c.titleLine1}
               </span>
-            </span>
+            ) : null}
+
+            {/* 2. Glowing Colorful Text - 2/3 Color Blend */}
+            {c.titleGradientText ? (
+              <span className="relative inline-block mt-2">
+                {/* Backlight Ambient Glow Layer */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 select-none blur-3xl opacity-70"
+                  style={{
+                    backgroundImage: `linear-gradient(to right, ${c.color1}, ${c.color2}, ${c.color3})`,
+                  }}
+                />
+                <span
+                  className="relative font-black tracking-wide block py-1"
+                  style={{
+                    backgroundImage: `linear-gradient(to right, ${c.color1}, ${c.color2}, ${c.color3})`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    filter: `drop-shadow(0 0 40px ${c.color1}90) drop-shadow(0 0 80px ${c.color2}60)`,
+                  }}
+                >
+                  {c.titleGradientText}
+                </span>
+              </span>
+            ) : null}
           </h1>
 
-          <p className="mt-6 text-base sm:text-xl md:text-2xl font-bold text-slate-100 max-w-3xl mx-auto leading-relaxed drop-shadow-md">
-            প্রজেক্টরে বড় পর্দায় প্রশ্ন আর মোবাইলের রঙিন বাটনে দ্রুততম উত্তরের মেধার প্রতিযোগিতা!
-          </p>
-          <p className="mt-2.5 text-xs sm:text-sm text-teal-200/90 font-semibold max-w-2xl mx-auto tracking-wide">
-            কোনো অ্যাপ বা পাসওয়ার্ডের ঝামেলা নেই · যেকোনো ডিভাইসে ৬ সংখ্যার পিন দিয়ে তাৎক্ষণিক অংশগ্রহণ
-          </p>
+          {c.subtitle ? (
+            <p className="mt-8 text-lg sm:text-2xl md:text-3xl font-bold text-slate-100 max-w-4xl mx-auto leading-relaxed drop-shadow-lg">
+              {c.subtitle}
+            </p>
+          ) : null}
+
+          {c.subText ? (
+            <p className="mt-3 text-sm sm:text-base text-teal-200/90 font-semibold max-w-3xl mx-auto tracking-wide">
+              {c.subText}
+            </p>
+          ) : null}
         </div>
 
         {/* Prominent Game Entry Arena (Ring Glow Effect & Vector Cards) */}
-        <div className="mt-10 max-w-5xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl border-2 border-teal-400/60 bg-gradient-to-b from-slate-900/95 via-[#09112a]/90 to-[#060c22] p-6 sm:p-10 ring-2 ring-teal-400/40 shadow-[0_0_50px_rgba(45,212,191,0.25)] hover:ring-teal-300 hover:shadow-[0_0_70px_rgba(45,212,191,0.4)] backdrop-blur-2xl transition-all duration-300">
+        <div className="mt-12 max-w-5xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl border-2 border-teal-400/60 bg-gradient-to-b from-slate-900/95 via-[#09112a]/90 to-[#060c22] p-6 sm:p-10 ring-2 ring-teal-400/40 shadow-[0_0_60px_rgba(45,212,191,0.25)] hover:ring-teal-300 hover:shadow-[0_0_80px_rgba(45,212,191,0.4)] backdrop-blur-2xl transition-all duration-300">
             {/* Ambient Corner Glow */}
-            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-teal-500/25 blur-3xl" />
-            <div className="pointer-events-none absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl" />
+            <div
+              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full blur-3xl opacity-30"
+              style={{ backgroundColor: c.color1 }}
+            />
+            <div
+              className="pointer-events-none absolute -left-16 -bottom-16 h-56 w-56 rounded-full blur-3xl opacity-30"
+              style={{ backgroundColor: c.color2 }}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Side: Direct PIN Input */}
@@ -113,13 +156,13 @@ export function HomeHero({
                       ইনস্ট্যান্ট গেম প্লে
                     </span>
                     <h2 className="text-2xl sm:text-3xl font-black text-white">
-                      গেম পিন দিয়ে সরাসরি খেলুন
+                      {c.joinTitle}
                     </h2>
                   </div>
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  বোর্ডে বা প্রজেক্টরে প্রদর্শিত ৬ সংখ্যার গেম পিন লিখে সাথে সাথে ক্লাসের লাইভ গেমিং ব্যাটেলে প্রবেশ করুন!
+                  {c.joinSubtitle}
                 </p>
 
                 {/* Quick Join Form */}
@@ -166,7 +209,7 @@ export function HomeHero({
                   {/* Quick links & scanner */}
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span>সার্ভার স্ট্যাটাস: আল্ট্রা-লো লেটেন্সি সক্রিয়</span>
                     </span>
                     <Link
@@ -235,7 +278,7 @@ export function HomeHero({
         </div>
 
         {/* Quick Teacher Portal Action Bar */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/join"
             className="flex items-center gap-2 rounded-2xl bg-teal-400/15 border border-teal-400/40 px-5 py-2.5 text-xs sm:text-sm font-black text-teal-300 hover:bg-teal-400/25 transition shadow-lg"
@@ -262,3 +305,4 @@ export function HomeHero({
     </section>
   );
 }
+

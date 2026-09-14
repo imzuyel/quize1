@@ -14,6 +14,7 @@ import {
   mergeSettings,
   type LiveQuestion,
   type LivePaletteItem,
+  type LiveChatMessage,
   type Snapshot,
 } from "./quiz-settings";
 

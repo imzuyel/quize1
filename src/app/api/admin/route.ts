@@ -5,6 +5,7 @@ import { fail, guard, ok } from "@/lib/api";
 import { MIN_PASSWORD_LENGTH, generatePassword, hashPassword, isAdmin, requireUser } from "@/lib/auth";
 import { invalidateFeatures } from "@/lib/features";
 import { invalidateSeo } from "@/lib/seo";
+import { invalidateAnimationSettings } from "@/lib/animation-config-server";
 import { audit } from "@/lib/audit";
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
       // Feature flags are cached — drop the cache so the change is instant.
       if (key === "features") invalidateFeatures();
       if (key === "seo") invalidateSeo();
+      if (key === "animations") invalidateAnimationSettings();
       await audit(user.id, "settings.save", "settings", null, { key });
       return ok({ ok: true });
     }

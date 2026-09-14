@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { buildJsonLd, getSeo, resolveSiteUrl } from "@/lib/seo";
+import { getAnimationSettings } from "@/lib/animation-config-server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await getSeo();
@@ -83,6 +84,7 @@ export async function generateViewport(): Promise<Viewport> {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const seo = await getSeo();
+  const animationSettings = await getAnimationSettings();
   const jsonLd = buildJsonLd(seo, resolveSiteUrl(seo));
 
   return (
@@ -102,7 +104,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <Providers animationSettings={animationSettings}>{children}</Providers>
       </body>
     </html>
   );

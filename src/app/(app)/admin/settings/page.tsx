@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_FEATURES, FEATURE_LABELS, mergeFeatures, type FeatureFlags } from "@/lib/prefs";
 import { DEFAULT_SEO, mergeSeo, type SeoSettings } from "@/lib/seo-config";
+import { DEFAULT_HERO_SETTINGS, mergeHeroSettings, type HeroSettings } from "@/lib/frontend-config";
+import { DEFAULT_ANIMATION_SETTINGS, mergeAnimationSettings, type AnimationSettings } from "@/lib/animation-config";
+import { useAnimationConfig } from "@/components/animation-provider";
+import { Progress } from "@/components/ui";
 import {
   Badge,
   Button,
@@ -71,6 +75,9 @@ export default function AdminSettings() {
   const [appearance, setAppearance] = useState<AppearanceSettings>({ theme: "system", primary: DEFAULT_BRANDING.primary, accent: DEFAULT_BRANDING.accent, font: "Inter", bnFont: "Noto Sans Bengali", radius: "round", animation: "medium" });
   const [quizDefaults, setQuizDefaults] = useState<QuizDefaults>({ questionTime: 30, points: 1000, leaderboard: true, sound: true, music: true, randomQuestions: false, randomOptions: false, lateJoin: true, maxParticipants: 200, autoNext: false });
   const [studentDefaults, setStudentDefaults] = useState<StudentDefaults>({ nicknameRequired: false, autoNickname: true, avatar: true, allowRejoin: true, showNames: true });
+  const [hero, setHero] = useState<HeroSettings>(DEFAULT_HERO_SETTINGS);
+  const [animations, setAnimations] = useState<AnimationSettings>(DEFAULT_ANIMATION_SETTINGS);
+  const { updateSettings: updateLiveAnimationSettings } = useAnimationConfig();
 
   const load = useCallback(async () => {
     const s = await fetch("/api/admin?scope=settings");
@@ -82,6 +89,8 @@ export default function AdminSettings() {
       if (json.appearance) setAppearance({ theme: "system", primary: DEFAULT_BRANDING.primary, accent: DEFAULT_BRANDING.accent, font: "Inter", bnFont: "Noto Sans Bengali", radius: "round", animation: "medium", ...json.appearance });
       if (json.quizDefaults) setQuizDefaults({ questionTime: 30, points: 1000, leaderboard: true, sound: true, music: true, randomQuestions: false, randomOptions: false, lateJoin: true, maxParticipants: 200, autoNext: false, ...json.quizDefaults });
       if (json.studentDefaults) setStudentDefaults({ nicknameRequired: false, autoNickname: true, avatar: true, allowRejoin: true, showNames: true, ...json.studentDefaults });
+      if (json.hero) setHero(mergeHeroSettings(json.hero));
+      if (json.animations) setAnimations(mergeAnimationSettings(json.animations));
       setFeatures(mergeFeatures(json.features));
       setSeo(mergeSeo(json.seo, json.branding));
     }
@@ -115,6 +124,8 @@ export default function AdminSettings() {
       <Tabs
         tabs={[
           { id: "branding", label: "ব্র্যান্ডিং", icon: "🎨" },
+          { id: "hero", label: "হোমপেজ ও হিরো", icon: "🚀" },
+          { id: "animation", label: "এনিমেশন", icon: "⚡" },
           { id: "institution", label: "প্রতিষ্ঠান", icon: "🏫" },
           { id: "social", label: "সোশ্যাল", icon: "🌐" },
           { id: "appearance", label: "অ্যাপিয়ারেন্স", icon: "✨" },
@@ -129,6 +140,374 @@ export default function AdminSettings() {
         active={tab}
         onChange={setTab}
       />
+
+      {tab === "animation" ? (
+        <div className="space-y-4">
+          <Card accent="teal">
+            <SectionTitle
+              title="⚡ প্রিমিয়াম এনিমেশন কন্ট্রোল সিস্টেম (Centralized Animation Settings)"
+              subtitle="কার্ড গ্লো বর্ডার, বাটন ইন্টারঅ্যাকশন, স্ক্রোল রিভিল এবং প্রোগ্রেস বারের গতি ও স্টাইল কন্ট্রোল করুন"
+            />
+
+            {/* 1. Card Glow Border System */}
+            <div className="rounded-2xl border border-teal-500/20 bg-slate-900/40 p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-teal-300">✨ ১. কার্ড গ্লো বর্ডার এনিমেশন (Card Glow Border)</h3>
+                  <p className="text-xs text-slate-400">প্রতিটি কার্ডের চারপাশে স্মুথ মুভিং লাইট ও লাইট বর্ডার ট্রাভেল এনিমেশন</p>
+                </div>
+                <div className="w-36">
+                  <Toggle
+                    checked={animations.cardBorderEnabled}
+                    onChange={(v) => {
+                      const next = { ...animations, cardBorderEnabled: v };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                    label={animations.cardBorderEnabled ? "চালু ✅" : "বন্ধ ❌"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="গ্লো ইন্টেনসিটি (Glow Intensity)">
+                  <Select
+                    value={animations.cardGlowIntensity}
+                    onChange={(e) => {
+                      const next = { ...animations, cardGlowIntensity: e.target.value as any };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                  >
+                    <option value="subtle">সূক্ষ্ম (Subtle Glow - 20%)</option>
+                    <option value="medium">মাঝারি (Medium Glow - 45% - প্রস্তাবিত)</option>
+                    <option value="strong">তীব্র (Strong Premium Glow - 75%)</option>
+                  </Select>
+                </Field>
+
+                <Field label="এনিমেশন গতি (Border Movement Speed)">
+                  <Select
+                    value={animations.cardBorderSpeed}
+                    onChange={(e) => {
+                      const next = { ...animations, cardBorderSpeed: e.target.value as any };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                  >
+                    <option value="slow">ধীরগতি (Slow - 10 Seconds)</option>
+                    <option value="normal">স্বাভাবিক (Normal - 6 Seconds - প্রস্তাবিত)</option>
+                    <option value="fast">দ্রুত (Fast - 3 Seconds)</option>
+                  </Select>
+                </Field>
+              </div>
+
+              {/* Card Preview Grid */}
+              <div className="mt-4 rounded-xl bg-[#060a1e] p-4">
+                <p className="text-xs font-bold text-slate-400 mb-3">🎨 কার্ড অ্যাকসент গ্লো প্রিভিউ (Live Accent Colors Preview):</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Card accent="teal" className="p-3">
+                    <p className="text-xs font-bold text-teal-300">Teal/Cyan Accent</p>
+                    <p className="text-[11px] text-slate-400">Cyan Glow Border</p>
+                  </Card>
+                  <Card accent="purple" className="p-3">
+                    <p className="text-xs font-bold text-purple-300">Purple/Violet Accent</p>
+                    <p className="text-[11px] text-slate-400">Purple Glow Border</p>
+                  </Card>
+                  <Card accent="gold" className="p-3">
+                    <p className="text-xs font-bold text-amber-300">Amber/Gold Accent</p>
+                    <p className="text-[11px] text-slate-400">Warm Gold Glow Border</p>
+                  </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Button Animation System */}
+            <div className="mt-4 rounded-2xl border border-indigo-500/20 bg-slate-900/40 p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-indigo-300">🔘 ২. বাটন ইন্টারঅ্যাকশন এনিমেশন (Button Interaction)</h3>
+                  <p className="text-xs text-slate-400">হোভার প্রেসম্যাপ, লাইট শাইন বিম এবং প্রেস/ট্যাপ রেসপন্সিভ ফিডব্যাক</p>
+                </div>
+                <div className="w-36">
+                  <Toggle
+                    checked={animations.buttonAnimationEnabled}
+                    onChange={(v) => {
+                      const next = { ...animations, buttonAnimationEnabled: v };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                    label={animations.buttonAnimationEnabled ? "চালু ✅" : "বন্ধ ❌"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="বাটন গ্লো লেভেল (Glow Level)">
+                  <Select
+                    value={animations.buttonGlowIntensity}
+                    onChange={(e) => {
+                      const next = { ...animations, buttonGlowIntensity: e.target.value as any };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                  >
+                    <option value="subtle">সূক্ষ্ম (Subtle)</option>
+                    <option value="medium">মাঝারি (Medium)</option>
+                    <option value="strong">উজ্জ্বল (Strong)</option>
+                  </Select>
+                </Field>
+
+                <div className="pt-6">
+                  <Toggle
+                    checked={animations.buttonHoverEffect}
+                    onChange={(v) => {
+                      const next = { ...animations, buttonHoverEffect: v };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                    label="হোভার বিম শাইন এফেক্ট (Hover Shine Beam)"
+                  />
+                </div>
+              </div>
+
+              {/* Button Preview */}
+              <div className="mt-2 rounded-xl bg-[#060a1e] p-4 flex flex-wrap items-center gap-3">
+                <p className="text-xs font-bold text-slate-400 w-full mb-1">🔘 লাইভ বাটন প্রিভিউ (Button Animation Live Preview):</p>
+                <Button variant="primary" size="sm">Primary Button</Button>
+                <Button variant="secondary" size="sm">Secondary Button</Button>
+                <Button variant="gold" size="sm">Gold Button</Button>
+                <Button variant="outline" size="sm">Outline Button</Button>
+              </div>
+            </div>
+
+            {/* 3. Scroll / AOS Reveal System */}
+            <div className="mt-4 rounded-2xl border border-sky-500/20 bg-slate-900/40 p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-sky-300">📜 ৩. পেজ স্ক্রোল রিভিল এনিমেশন (Scroll Reveal / AOS)</h3>
+                  <p className="text-xs text-slate-400">পেজে স্ক্রোল করার সময় কনটেন্ট ও কার্ডসমূহের মসৃণ আত্মপ্রকাশ</p>
+                </div>
+                <div className="w-36">
+                  <Toggle
+                    checked={animations.scrollAnimationEnabled}
+                    onChange={(v) => {
+                      const next = { ...animations, scrollAnimationEnabled: v };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                    label={animations.scrollAnimationEnabled ? "চালু ✅" : "বন্ধ ❌"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="রিভিল এনিমেশন টাইপ (Default Animation Type)">
+                  <Select
+                    value={animations.scrollAnimationType}
+                    onChange={(e) => {
+                      const next = { ...animations, scrollAnimationType: e.target.value as any };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                  >
+                    <option value="fade-up">Fade Up (নিচ থেকে উপরে)</option>
+                    <option value="fade-down">Fade Down (উপর থেকে নিচে)</option>
+                    <option value="fade-left">Fade Left (ডান থেকে বামে)</option>
+                    <option value="fade-right">Fade Right (বাম থেকে ডানে)</option>
+                    <option value="zoom-in">Zoom In (জুম ইন)</option>
+                    <option value="slide-up">Slide Up (মসৃণ স্লাইড)</option>
+                  </Select>
+                </Field>
+
+                <Field label="এনিমেশন ডিউরেশন (Duration in ms)">
+                  <Input
+                    type="number"
+                    min={100}
+                    max={2000}
+                    step={50}
+                    value={animations.scrollAnimationDuration}
+                    onChange={(e) => {
+                      const next = { ...animations, scrollAnimationDuration: Number(e.target.value) || 500 };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                  />
+                </Field>
+
+                <Field label="গ্রিড কার্ডস সিকোয়েন্স ডিলে (Stagger Delay ms)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={500}
+                    step={10}
+                    value={animations.scrollAnimationStagger}
+                    onChange={(e) => {
+                      const next = { ...animations, scrollAnimationStagger: Number(e.target.value) || 80 };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* 4. Progress Bar Animation System */}
+            <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-slate-900/40 p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-emerald-300">📊 ৪. প্রোগ্রেস বার এনিমেশন (Animated Progress Bar)</h3>
+                  <p className="text-xs text-slate-400">পার্সেন্টেজ ফিল, শাইনিং স্ট্রিম ওভারলে এবং স্মুথ ফিলিং এনিমেশন</p>
+                </div>
+                <div className="w-36">
+                  <Toggle
+                    checked={animations.progressAnimationEnabled}
+                    onChange={(v) => {
+                      const next = { ...animations, progressAnimationEnabled: v };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                    label={animations.progressAnimationEnabled ? "চালু ✅" : "বন্ধ ❌"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="প্রোগ্রেস ফিল ডিউরেশন (Fill Duration ms)">
+                  <Input
+                    type="number"
+                    min={200}
+                    max={3000}
+                    step={100}
+                    value={animations.progressAnimationDuration}
+                    onChange={(e) => {
+                      const next = { ...animations, progressAnimationDuration: Number(e.target.value) || 800 };
+                      setAnimations(next);
+                      updateLiveAnimationSettings(next);
+                    }}
+                  />
+                </Field>
+              </div>
+
+              {/* Progress Bar Live Preview */}
+              <div className="mt-2 rounded-xl bg-[#060a1e] p-4 space-y-3">
+                <p className="text-xs font-bold text-slate-400">📊 লাইভ প্রোগ্রেস বার প্রিভিউ (Progress Bar Live Preview):</p>
+                <Progress value={75} tone="teal" showLabel label="কুইজ প্রোগ্রেস (Teal Tone)" />
+                <Progress value={90} tone="gold" showLabel label="লেভেল এক্সপি (Gold Tone)" />
+                <Progress value={60} tone="purple" showLabel label="স্কিল পারফরম্যান্স (Purple Tone)" />
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button
+                onClick={async () => {
+                  const d = await post({ op: "saveSettings", key: "animations", value: animations });
+                  if (d) push("প্রিমিয়াম এনিমেশন কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে ✅", "success");
+                }}
+              >
+                💾 এনিমেশন সেটিংস সংরক্ষণ করুন
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setAnimations(DEFAULT_ANIMATION_SETTINGS);
+                  updateLiveAnimationSettings(DEFAULT_ANIMATION_SETTINGS);
+                }}
+              >
+                ডিফল্ট সেটিংস রিসেট করুন
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {tab === "hero" ? (
+        <div className="space-y-4">
+          <Card>
+            <SectionTitle
+              title="🚀 ফ্রন্টএন্ড হিরো ও টেক্সট কনট্রোল"
+              subtitle="হোমপেজের হিরো হেডিং, রঙ ও সকল বার্তা ব্যাকএন্ড থেকে সরাসরি নিয়ন্ত্রণ করুন"
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="হিরো হেডিং (লাইন ১)"><Input value={hero.titleLine1} onChange={(e) => setHero({ ...hero, titleLine1: e.target.value })} placeholder="যেমন: লাইভ ক্লাসরুমে বন্ধুদের সাথে" /></Field>
+              <Field label="হাইলাইটেড টেক্সট (২/৩ রঙের গ্র্যাডিয়েন্ট)"><Input value={hero.titleGradientText} onChange={(e) => setHero({ ...hero, titleGradientText: e.target.value })} placeholder="যেমন: রোমাঞ্চকর কুইজ ও গেমিং লড়াই ⚡" /></Field>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-indigo-500/20 bg-slate-900/40 p-4 space-y-3">
+              <p className="text-xs font-bold text-indigo-300">🎨 হেডিং এর ২-৩ রঙের ব্লেড (3 Color Scheme Gradient)</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="রঙ ১ (বাম)"><div className="flex items-center gap-2"><input type="color" value={hero.color1} onChange={(e) => setHero({ ...hero, color1: e.target.value })} className="h-10 w-12 rounded-lg border" /><Input value={hero.color1} onChange={(e) => setHero({ ...hero, color1: e.target.value })} /></div></Field>
+                <Field label="রঙ ২ (মাঝখানের)"><div className="flex items-center gap-2"><input type="color" value={hero.color2} onChange={(e) => setHero({ ...hero, color2: e.target.value })} className="h-10 w-12 rounded-lg border" /><Input value={hero.color2} onChange={(e) => setHero({ ...hero, color2: e.target.value })} /></div></Field>
+                <Field label="রঙ ৩ (ডান)"><div className="flex items-center gap-2"><input type="color" value={hero.color3} onChange={(e) => setHero({ ...hero, color3: e.target.value })} className="h-10 w-12 rounded-lg border" /><Input value={hero.color3} onChange={(e) => setHero({ ...hero, color3: e.target.value })} /></div></Field>
+              </div>
+              <div className="rounded-xl bg-[#060a1e] p-4 text-center">
+                <p className="text-xs text-slate-400 mb-1">কালার স্কিম প্রিভিউ:</p>
+                <span
+                  className="text-2xl font-black"
+                  style={{
+                    backgroundImage: `linear-gradient(to right, ${hero.color1}, ${hero.color2}, ${hero.color3})`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  {hero.titleGradientText || "কালার ব্লেন্ড টেক্সট প্রিভিউ"}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="সাবটাইটেল (প্রধান বর্ণনা)"><Textarea value={hero.subtitle} onChange={(e) => setHero({ ...hero, subtitle: e.target.value })} className="min-h-[70px]" /></Field>
+              <Field label="দ্বিতীয় টেক্সট (ছোট বর্ণনা)"><Textarea value={hero.subText} onChange={(e) => setHero({ ...hero, subText: e.target.value })} className="min-h-[70px]" /></Field>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <Field label="ব্যাজ Pill ১"><Input value={hero.badge1} onChange={(e) => setHero({ ...hero, badge1: e.target.value })} /></Field>
+              <Field label="ব্যাজ Pill ২"><Input value={hero.badge2} onChange={(e) => setHero({ ...hero, badge2: e.target.value })} /></Field>
+              <Field label="ব্যাজ Pill ৩"><Input value={hero.badge3} onChange={(e) => setHero({ ...hero, badge3: e.target.value })} /></Field>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="সরাসরি গেম পিন ইনপুট - শিরোনাম"><Input value={hero.joinTitle} onChange={(e) => setHero({ ...hero, joinTitle: e.target.value })} /></Field>
+              <Field label="সরাসরি গেম পিন ইনপুট - উপশিরোনাম"><Input value={hero.joinSubtitle} onChange={(e) => setHero({ ...hero, joinSubtitle: e.target.value })} /></Field>
+            </div>
+
+            <div className="mt-4">
+              <Field label="টপ টিঙ্কার নোটিশ বার টেক্সট"><Input value={hero.tickerText} onChange={(e) => setHero({ ...hero, tickerText: e.target.value })} /></Field>
+            </div>
+          </Card>
+
+          <Card>
+            <SectionTitle
+              title="👁️ হোমপেজের সেকশন দৃশ্যমানতা (Show / Hide)"
+              subtitle="হোমপেজের যেকোনো সেকশন প্রয়োজন অনুযায়ী চালু বা বন্ধ রাখুন"
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Toggle checked={hero.showTicker} onChange={(v) => setHero({ ...hero, showTicker: v })} label="⚡ টপ টিঙ্কার নোটিশ বার" />
+              <Toggle checked={hero.showHero} onChange={(v) => setHero({ ...hero, showHero: v })} label="🚀 মেইন হিরো সেকশন" />
+              <Toggle checked={hero.showGuide} onChange={(v) => setHero({ ...hero, showGuide: v })} label="📖 ধাপে ধাপে গাইড সেকশন" />
+              <Toggle checked={hero.showGameFeatures} onChange={(v) => setHero({ ...hero, showGameFeatures: v })} label="🎮 গেম মোড ও ফিচার কার্ডস" />
+              <Toggle checked={hero.showLivePreview} onChange={(v) => setHero({ ...hero, showLivePreview: v })} label="📡 লাইভ প্রিভিউ ট্যাব" />
+              <Toggle checked={hero.showBentoGrid} onChange={(v) => setHero({ ...hero, showBentoGrid: v })} label="🧩 কুইজ স্টুডিও বেনটো গ্রিড" />
+              <Toggle checked={hero.showRoles} onChange={(v) => setHero({ ...hero, showRoles: v })} label="👥 ভূমিকা নির্বাচন গ্রিড" />
+              <Toggle checked={hero.showCredits} onChange={(v) => setHero({ ...hero, showCredits: v })} label="🏛️ কারিগরি পরিচিতি ফুটার সেকশন" />
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button
+                onClick={async () => {
+                  const d = await post({ op: "saveSettings", key: "hero", value: hero });
+                  if (d) push("হোমপেজ ও হিরো সেটিংস সফলভাবে সংরক্ষিত ✅", "success");
+                }}
+              >
+                💾 সংরক্ষণ করুন
+              </Button>
+              <Button variant="ghost" onClick={() => setHero(DEFAULT_HERO_SETTINGS)}>
+                ডিফল্ট সেটিংস রিসেট করুন
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
 
       {tab === "branding" ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">

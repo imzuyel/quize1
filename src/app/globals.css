@@ -67,6 +67,278 @@ body {
   border-radius: var(--radius);
 }
 
+/* ==========================================================================
+   PREMIUM ANIMATED GLOW BORDER SYSTEM
+   ========================================================================== */
+
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes pg-glow-spin {
+  0% {
+    --glow-angle: 0deg;
+  }
+  100% {
+    --glow-angle: 360deg;
+  }
+}
+
+:root {
+  /* Configurable CSS Variables for Card Glow System */
+  --card-glow-enabled: 1;
+  --card-glow-color: rgba(20, 184, 166, 0.45);        /* Default Teal/Cyan accent */
+  --card-glow-color-bright: rgba(45, 212, 191, 0.95); /* Moving highlight peak */
+  --card-glow-speed: 6s;                             /* Animation duration per 360 rotation */
+  --card-glow-border-width: 1px;                     /* Border thickness */
+  --card-glow-base-opacity: 0.45;                    /* Normal state opacity */
+  --card-hover-glow-opacity: 0.85;                   /* Hover state opacity */
+  --card-hover-scale: 1.01;                          /* Max 1% lift on hover */
+
+  /* Button Animation System */
+  --button-animation-enabled: 1;
+  --button-glow-opacity: 0.5;
+  --button-hover-effect: 1;
+
+  /* Scroll / AOS System */
+  --scroll-animation-enabled: 1;
+  --aos-default-duration: 500ms;
+
+  /* Progress System */
+  --progress-animation-enabled: 1;
+  --progress-duration: 800ms;
+}
+
+/* Accent Color Modifiers */
+.glow-teal, .glow-cyan, [class*="border-teal"], [class*="border-cyan"], [class*="text-teal"], [class*="text-cyan"] {
+  --card-glow-color: rgba(20, 184, 166, 0.5);
+  --card-glow-color-bright: rgba(45, 212, 191, 0.95);
+}
+
+.glow-purple, .glow-violet, [class*="border-purple"], [class*="border-violet"], [class*="text-purple"] {
+  --card-glow-color: rgba(168, 85, 247, 0.5);
+  --card-glow-color-bright: rgba(216, 180, 254, 0.95);
+}
+
+.glow-blue, .glow-indigo, [class*="border-blue"], [class*="border-indigo"], [class*="text-blue"] {
+  --card-glow-color: rgba(59, 130, 246, 0.5);
+  --card-glow-color-bright: rgba(147, 197, 253, 0.95);
+}
+
+.glow-amber, .glow-yellow, .glow-gold, [class*="border-amber"], [class*="border-yellow"], [class*="text-amber"] {
+  --card-glow-color: rgba(245, 158, 11, 0.55);
+  --card-glow-color-bright: rgba(253, 224, 71, 0.95);
+}
+
+.glow-emerald, .glow-green, [class*="border-emerald"], [class*="border-green"], [class*="text-emerald"] {
+  --card-glow-color: rgba(16, 185, 129, 0.5);
+  --card-glow-color-bright: rgba(110, 231, 183, 0.95);
+}
+
+.glow-rose, .glow-coral, .glow-red, [class*="border-rose"], [class*="border-red"], [class*="text-rose"] {
+  --card-glow-color: rgba(244, 63, 94, 0.5);
+  --card-glow-color-bright: rgba(253, 164, 175, 0.95);
+}
+
+/* Card Glow Container */
+.pg-card-glow {
+  position: relative;
+  isolation: isolate;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ensure children stay above the pseudo-elements and remain 100% interactive */
+.pg-card-glow > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Layer 1: Animated Moving Border Highlight (::before) */
+.pg-card-glow::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--card-glow-border-width));
+  border-radius: inherit;
+  padding: var(--card-glow-border-width);
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    transparent 200deg,
+    var(--card-glow-color) 260deg,
+    var(--card-glow-color-bright) 310deg,
+    var(--card-glow-color) 340deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none !important;
+  z-index: 1;
+  opacity: calc(var(--card-glow-base-opacity) * var(--card-glow-enabled, 1));
+  transition: opacity 0.4s ease;
+  animation: pg-glow-spin var(--card-glow-speed) linear infinite;
+}
+
+/* Layer 2: Soft Outer Ambient Glow (::after) */
+.pg-card-glow::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    transparent 220deg,
+    var(--card-glow-color) 280deg,
+    var(--card-glow-color-bright) 325deg,
+    transparent 360deg
+  );
+  filter: blur(10px);
+  pointer-events: none !important;
+  z-index: 0;
+  opacity: calc(var(--card-glow-base-opacity) * 0.4 * var(--card-glow-enabled, 1));
+  transition: opacity 0.4s ease;
+  animation: pg-glow-spin var(--card-glow-speed) linear infinite;
+}
+
+/* Desktop Hover Effects */
+@media (hover: hover) and (pointer: fine) {
+  .pg-card-glow:hover {
+    transform: translateY(-2px) scale(var(--card-hover-scale));
+    box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.4), 0 0 18px -4px var(--card-glow-color);
+  }
+
+  .pg-card-glow:hover::before {
+    opacity: calc(var(--card-hover-glow-opacity) * var(--card-glow-enabled, 1));
+  }
+
+  .pg-card-glow:hover::after {
+    opacity: calc(var(--card-hover-glow-opacity) * 0.6 * var(--card-glow-enabled, 1));
+  }
+}
+
+/* Accessibility: Reduced motion mode */
+@media (prefers-reduced-motion: reduce) {
+  .pg-card-glow::before,
+  .pg-card-glow::after {
+    animation: none !important;
+    background: var(--card-glow-color) !important;
+  }
+}
+
+/* ==========================================================================
+   PREMIUM BUTTON ANIMATION SYSTEM
+   ========================================================================== */
+.pg-btn-animated {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.pg-btn-animated:active {
+  transform: scale(0.98) !important;
+}
+
+/* Button hover shine effect */
+.pg-btn-animated::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none !important;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pg-btn-animated:hover::before {
+    opacity: calc(var(--button-hover-effect, 1) * var(--button-animation-enabled, 1));
+    animation: pg-btn-shine 1.4s ease infinite;
+  }
+}
+
+@keyframes pg-btn-shine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* ==========================================================================
+   SCROLL / AOS REVEAL ANIMATION SYSTEM
+   ========================================================================== */
+[data-aos] {
+  opacity: 0;
+  transition-property: opacity, transform;
+  transition-duration: var(--aos-default-duration, 500ms);
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+[data-aos="fade-up"] { transform: translateY(24px); }
+[data-aos="fade-down"] { transform: translateY(-24px); }
+[data-aos="fade-left"] { transform: translateX(24px); }
+[data-aos="fade-right"] { transform: translateX(-24px); }
+[data-aos="zoom-in"] { transform: scale(0.92); }
+[data-aos="slide-up"] { transform: translateY(36px); }
+
+[data-aos].aos-animate {
+  opacity: 1;
+  transform: translate(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-aos] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   PREMIUM ANIMATED PROGRESS BAR SYSTEM
+   ========================================================================== */
+.pg-progress-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: rgba(226, 232, 240, 0.8);
+}
+.dark .pg-progress-track {
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+.pg-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+  transition: width var(--progress-duration, 800ms) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pg-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  animation: pg-shimmer 2.2s infinite linear;
+  opacity: calc(var(--progress-animation-enabled, 1));
+}
+
 .pg-shadow {
   box-shadow: 0 1px 2px rgba(15, 47, 74, 0.06), 0 12px 28px -18px rgba(15, 47, 74, 0.35);
 }

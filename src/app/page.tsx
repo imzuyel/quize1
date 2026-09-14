@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getSeo } from "@/lib/seo";
+import { mergeHeroSettings } from "@/lib/frontend-config";
 import { LandingPreviews } from "@/components/landing-previews";
 import { RoleGrid } from "@/components/demo-entry";
 import { AUTHOR, DeveloperCard, SocialRing } from "@/components/credit";
@@ -32,6 +33,8 @@ export default async function Home({
   const seo = await getSeo();
   const brandingRow = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, "branding")).limit(1);
   const branding = (brandingRow[0]?.value ?? {}) as Record<string, string | boolean>;
+  const heroRow = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, "hero")).limit(1);
+  const heroSettings = mergeHeroSettings(heroRow[0]?.value);
   const unavailable = sp.demo === "unavailable";
   const user = await getCurrentUser();
   const demoMode = process.env.DEMO_MODE !== "false";
@@ -105,13 +108,11 @@ export default async function Home({
       </header>
 
       {/* Ticker notice */}
-      <div className="border-b border-teal-500/20 bg-gradient-to-r from-teal-950/90 via-slate-950 to-indigo-950/90 px-4 py-2.5 text-center text-xs sm:text-sm font-bold text-teal-200 backdrop-blur">
-        ⚡ ক্লাসে লাইভ কুইজ চলছে?{" "}
-        <Link href="/join" className="text-white underline decoration-teal-400 decoration-2 underline-offset-4 font-black">
-          এখানে PIN দিয়ে সরাসরি Join করুন
-        </Link>
-        {" "}· কোনো অ্যাপ বা পাসওয়ার্ডের প্রয়োজন নেই!
-      </div>
+      {heroSettings.showTicker && heroSettings.tickerText ? (
+        <div className="border-b border-teal-500/20 bg-gradient-to-r from-teal-950/90 via-slate-950 to-indigo-950/90 px-4 py-2.5 text-center text-xs sm:text-sm font-bold text-teal-200 backdrop-blur">
+          {heroSettings.tickerText}
+        </div>
+      ) : null}
 
       {unavailable ? (
         <div className="bg-amber-500/20 border-b border-amber-500/40 px-4 py-2.5 text-center text-xs sm:text-sm font-bold text-amber-200">
@@ -120,8 +121,10 @@ export default async function Home({
         </div>
       ) : null}
 
-      {/* 1. Full-Screen Modern Hero with Word Slider, Student Join Input & Teacher Portal */}
-      <HomeHero signedIn={Boolean(user)} userRole={user?.role} />
+      {/* 1. Full-Screen Modern Hero */}
+      {heroSettings.showHero ? (
+        <HomeHero signedIn={Boolean(user)} userRole={user?.role} settings={heroSettings} />
+      ) : null}
 
       {/* 2. Interactive Step-by-Step Scroll Walkthrough: How to Join & Play */}
       <HomeGuide />

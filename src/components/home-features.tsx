@@ -1,18 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-
-const TRADES = [
-  { name: "কম্পিউটার ও আইটি", icon: "💻", code: "Trade 68", topics: "ওয়েব ডেভেলপমেন্ট, পাইথন, ডাটাবেস ও নেটওয়ার্কিং" },
-  { name: "ইলেকট্রিক্যাল ওয়ার্কস", icon: "⚡", code: "Trade 67", topics: "সার্কিট অ্যানালাইসিস, হাউজ ওয়্যারিং, মোটর কন্ট্রোল" },
-  { name: "ইলেকট্রনিক্স ইঞ্জিনিয়ারিং", icon: "📻", code: "Trade 66", topics: "সেমিকন্ডাক্টর, মাইক্রোকন্ট্রোলার, পিএলসি" },
-  { name: "সিভিল কনস্ট্রাকশন", icon: "🏗️", code: "Trade 65", topics: "বিল্ডিং প্ল্যানিং, অটোক্যাড, এস্টিমেশন" },
-  { name: "মেকানিক্যাল টেকনোলজি", icon: "⚙️", code: "Trade 64", topics: "লেদ মেশিন, ড্রয়িং, হাইড্রোলিক্স ও থার্মাল" },
-  { name: "অটোমোবাইল সার্ভিসিং", icon: "🚗", code: "Trade 63", topics: "ইঞ্জিন ওভারহলিং, ইএফআই সিস্টেম, ব্রেক" },
-  { name: "ওয়েল্ডিং অ্যান্ড ফেব্রিকেশন", icon: "🔥", code: "Trade 62", topics: "আর্ক ওয়েল্ডিং, টিগ/মিগ ও মেটাল জয়েন্টিং" },
-  { name: "রেফ্রিজারেশন ও এসি", icon: "❄️", code: "Trade 61", topics: "এইচভিএসি সিস্টেম, কম্প্রেসর ও গ্যাস চার্জিং" },
-];
 
 const QUESTION_TYPES = [
   { type: "বহুনির্বাচনী (MCQ)", desc: "৪ বা ৫ অপশনের স্ট্যান্ডার্ড এমসিকিউ সাথে ব্যাখ্যা", badge: "জনপ্রিয়" },
@@ -26,8 +14,6 @@ const QUESTION_TYPES = [
 ];
 
 export function HomeFeatures() {
-  const [activeTrade, setActiveTrade] = useState(0);
-
   return (
     <section className="relative w-full bg-slate-900 text-white py-20 px-4 sm:px-8 lg:px-14 xl:px-20 overflow-hidden border-t border-slate-800">
       {/* Dynamic backdrop glows */}
@@ -36,54 +22,8 @@ export function HomeFeatures() {
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-teal-500/10 blur-[130px]" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto space-y-24">
-        {/* Section 1: Full-Screen Vocational Trades Showcase */}
-        <div>
-          <div className="text-center max-w-3xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 px-4 py-1.5 text-xs font-bold text-teal-300">
-              ⚙️ কারিগরি বিশেষায়িত
-            </span>
-            <h2 className="mt-4 text-2xl sm:text-4xl font-black text-white tracking-tight">
-              সকল কারিগরি ট্রেডের জন্য উপযোগী প্রশ্ন ও সিলেবাস
-            </h2>
-            <p className="mt-3 text-sm sm:text-base text-slate-300">
-              বাংলাদেশ কারিগরি শিক্ষা বোর্ডের প্রতিটি ট্রেডের সিলেবাসভিত্তিক প্রশ্ন জেনারেশন ও ক্লাসরুম টেস্ট।
-            </p>
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {TRADES.map((t, idx) => (
-              <div
-                key={t.name}
-                onMouseEnter={() => setActiveTrade(idx)}
-                className={`group relative rounded-3xl border p-6 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-xl ${
-                  activeTrade === idx
-                    ? "border-teal-400/80 bg-gradient-to-b from-slate-800/90 to-slate-950 shadow-2xl shadow-teal-500/20 -translate-y-1.5"
-                    : "border-white/10 bg-slate-950/60 hover:border-white/20 hover:bg-slate-900/60"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-3xl">{t.icon}</span>
-                  <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-slate-300">
-                    {t.code}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-base font-black text-white group-hover:text-teal-300 transition">
-                  {t.name}
-                </h3>
-                <p className="mt-2 text-xs text-slate-400 leading-relaxed">
-                  {t.topics}
-                </p>
-                <div className="mt-4 flex items-center justify-between text-xs font-bold text-teal-400 pt-3 border-t border-white/10">
-                  <span>প্রশ্ন ব্যাংক দেখুন</span>
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Section 2: 17+ Question Formats Showcase */}
+      <div className="relative max-w-7xl mx-auto space-y-20">
+        {/* Section 1: 17+ Question Formats Showcase */}
         <div>
           <div className="text-center max-w-3xl mx-auto">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300">
@@ -120,7 +60,7 @@ export function HomeFeatures() {
           </div>
         </div>
 
-        {/* Section 3: High-Tech Highlights Grid */}
+        {/* Section 2: High-Tech Highlights Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="rounded-3xl border border-teal-500/30 bg-gradient-to-b from-teal-950/40 to-slate-950 p-8 relative overflow-hidden group hover:border-teal-400/60 transition">
             <span className="text-3xl">🤖</span>
@@ -180,3 +120,4 @@ export function HomeFeatures() {
     </section>
   );
 }
+
