@@ -183,9 +183,12 @@ export function AnimatedKahootLeaderboard({
 
                     {/* Avatar Icon */}
                     <div
-                      className={`grid h-10 w-10 sm:h-12 sm:w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${bg} text-2xl shadow`}
+                      className={`relative grid h-11 w-11 sm:h-13 sm:w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${bg} text-2xl sm:text-3xl shadow-lg border border-white/10 overflow-hidden transform group-hover:scale-105 transition-all duration-300`}
                     >
-                      {avatar}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none" />
+                      <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)] select-none z-10">
+                        {avatar}
+                      </span>
                     </div>
 
                     {/* Player Info */}

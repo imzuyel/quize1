@@ -2,16 +2,90 @@
 
 import Link from "next/link";
 import { ScrollReveal } from "@/components/scroll-reveal";
+import {
+  ListTodo,
+  HelpCircle,
+  Type,
+  ArrowLeftRight,
+  SortAsc,
+  Code2,
+  Image as ImageIcon,
+  Headphones,
+} from "lucide-react";
 
 const QUESTION_TYPES = [
-  { type: "বহুনির্বাচনী (MCQ)", desc: "৪ বা ৫ অপশনের স্ট্যান্ডার্ড এমসিকিউ সাথে ব্যাখ্যা", badge: "জনপ্রিয়" },
-  { type: "সত্য / মিথ্যা (True/False)", desc: "দ্রুত ধারণা ও বেসিক যাচাই", badge: "র‍্যাপিড" },
-  { type: "শূন্যস্থান পূরণ (Fill in Blanks)", desc: "সঠিক শব্দ বা সংখ্যা ইনপুট", badge: "মেমোরি" },
-  { type: "বাম-ডান মিলকরণ (Matching)", desc: "টেনে এনে অপশন মেলানো", badge: "ইন্টারেক্টিভ" },
-  { type: "ক্রম সাজানো (Ordering)", desc: "ধাপগুলো সঠিক ক্রমে ড্র্যাগ অ্যান্ড ড্রপ", badge: "লজিক্যাল" },
-  { type: "কোড বা ফর্মুলা সমাধান", desc: "প্রোগ্রামিং সিনট্যাক্স ও গাণিতিক সমীকরণ", badge: "কারিগরি" },
-  { type: "ছবি ও ডায়াগ্রাম ভিত্তিক", desc: "যন্ত্রাংশ বা সার্কিট চিহ্নিতকরণ", badge: "ভিজ্যুয়াল" },
-  { type: "অডিও লিসেনিং কুইজ", desc: "ভয়েস প্রম্পট শুনে উত্তর নির্ধারণ", badge: "মাল্টিমিডিয়া" },
+  {
+    type: "বহুনির্বাচনী (MCQ)",
+    desc: "৪ বা ৫ অপশনের স্ট্যান্ডার্ড এমসিকিউ সাথে ব্যাখ্যা",
+    badge: "জনপ্রিয়",
+    icon: ListTodo,
+    color: "from-blue-500/20 to-indigo-500/20 text-blue-400 border-blue-500/30 bg-blue-500/10",
+    glowClass: "border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.2)] bg-gradient-to-br from-blue-950/40 via-slate-950 to-slate-950 hover:border-blue-400 hover:shadow-[0_0_25px_rgba(59,130,246,0.45)]",
+    iconColor: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  },
+  {
+    type: "সত্য / মিথ্যা (True/False)",
+    desc: "দ্রুত ধারণা ও বেসিক যাচাই",
+    badge: "র‍্যাপিড",
+    icon: HelpCircle,
+    color: "from-teal-500/20 to-emerald-500/20 text-teal-400 border-teal-500/30 bg-teal-500/10",
+    glowClass: "border-teal-500/40 shadow-[0_0_15px_rgba(20,184,166,0.2)] bg-gradient-to-br from-teal-950/40 via-slate-950 to-slate-950 hover:border-teal-400 hover:shadow-[0_0_25px_rgba(20,184,166,0.45)]",
+    iconColor: "text-teal-400 bg-teal-500/10 border-teal-500/20",
+  },
+  {
+    type: "শূন্যস্থান পূরণ",
+    desc: "সঠিক শব্দ বা সংখ্যা টাইপ করে ইনপুট",
+    badge: "মেমোরি",
+    icon: Type,
+    color: "from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30 bg-purple-500/10",
+    glowClass: "border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)] bg-gradient-to-br from-purple-950/40 via-slate-950 to-slate-950 hover:border-purple-400 hover:shadow-[0_0_25px_rgba(168,85,247,0.45)]",
+    iconColor: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+  },
+  {
+    type: "বাম-ডান মিলকরণ",
+    desc: "ইন্টারেক্টিভ উপায়ে টেনে এনে অপশন মেলানো",
+    badge: "ম্যাচিং",
+    icon: ArrowLeftRight,
+    color: "from-rose-500/20 to-red-500/20 text-rose-400 border-rose-500/30 bg-rose-500/10",
+    glowClass: "border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.2)] bg-gradient-to-br from-rose-950/40 via-slate-950 to-slate-950 hover:border-rose-400 hover:shadow-[0_0_25px_rgba(244,63,94,0.45)]",
+    iconColor: "text-rose-400 bg-rose-500/10 border-rose-500/20",
+  },
+  {
+    type: "ক্রম সাজানো (Ordering)",
+    desc: "ধাপগুলো সঠিক ক্রমে ড্র্যাগ অ্যান্ড ড্রপ",
+    badge: "লজিক্যাল",
+    icon: SortAsc,
+    color: "from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30 bg-amber-500/10",
+    glowClass: "border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)] bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-950 hover:border-amber-400 hover:shadow-[0_0_25px_rgba(245,158,11,0.45)]",
+    iconColor: "text-amber-400 bg-amber-50/10 border-amber-500/20",
+  },
+  {
+    type: "কোড ও ফর্মুলা সমাধান",
+    desc: "প্রোগ্রামিং সিনট্যাক্স ও গাণিতিক সমীকরণ",
+    badge: "কারিগরি",
+    icon: Code2,
+    color: "from-violet-500/20 to-fuchsia-500/20 text-violet-400 border-violet-500/30 bg-violet-500/10",
+    glowClass: "border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.2)] bg-gradient-to-br from-violet-950/40 via-slate-950 to-slate-950 hover:border-violet-400 hover:shadow-[0_0_25px_rgba(139,92,246,0.45)]",
+    iconColor: "text-violet-400 bg-violet-500/10 border-violet-500/20",
+  },
+  {
+    type: "ছবি ও ডায়াগ্রাম ভিত্তিক",
+    desc: "যন্ত্রাংশ, সার্কিট বা ম্যাপ চিহ্নিতকরণ",
+    badge: "ভিজ্যুয়াল",
+    icon: ImageIcon,
+    color: "from-sky-500/20 to-cyan-500/20 text-sky-400 border-sky-500/30 bg-sky-500/10",
+    glowClass: "border-sky-500/40 shadow-[0_0_15px_rgba(14,165,233,0.2)] bg-gradient-to-br from-sky-950/40 via-slate-950 to-slate-950 hover:border-sky-400 hover:shadow-[0_0_25px_rgba(14,165,233,0.45)]",
+    iconColor: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+  },
+  {
+    type: "অডিও লিসেনিং কুইজ",
+    desc: "ভয়েস প্রম্পট শুনে সঠিক উত্তর নির্ধারণ",
+    badge: "মাল্টিমিডিয়া",
+    icon: Headphones,
+    color: "from-emerald-500/20 to-green-500/20 text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+    glowClass: "border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)] bg-gradient-to-br from-emerald-950/40 via-slate-950 to-slate-950 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.45)]",
+    iconColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  },
 ];
 
 export function HomeFeatures() {
@@ -28,7 +102,7 @@ export function HomeFeatures() {
         <div>
           <ScrollReveal variant="fade-up" duration={600}>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300 shadow-sm">
                 🎯 বৈচিত্র্যময় মূল্যায়ন
               </span>
               <h2 className="mt-4 text-2xl sm:text-4xl font-black text-white tracking-tight">
@@ -41,26 +115,51 @@ export function HomeFeatures() {
           </ScrollReveal>
 
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {QUESTION_TYPES.map((q, i) => (
-              <ScrollReveal key={q.type} variant="fade-up" delay={i * 60} duration={550}>
-                <div
-                  className="rounded-3xl border border-white/10 bg-slate-950/70 p-5 backdrop-blur-xl hover:border-indigo-400/50 hover:bg-slate-900/80 transition-all duration-200 group hover:-translate-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 text-[10px] font-bold">
-                      {q.badge}
-                    </span>
-                    <span className="text-xs text-slate-500">ফরম্যাট</span>
+            {QUESTION_TYPES.map((q, i) => {
+              const IconComp = q.icon;
+              return (
+                <ScrollReveal key={q.type} variant="fade-up" delay={i * 50} duration={550}>
+                  <div
+                    className={`relative overflow-hidden rounded-3xl border p-5 backdrop-blur-xl transition-all duration-300 group hover:-translate-y-1.5 ${q.glowClass}`}
+                  >
+                    {/* Dynamic SVG Vector grid inside the card */}
+                    <div className="absolute inset-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition duration-300">
+                      <svg className="h-full w-full" fill="none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <defs>
+                          <pattern id={`grid-${i}`} width="10" height="10" patternUnits="userSpaceOnUse">
+                            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                          </pattern>
+                        </defs>
+                        <rect width="100" height="100" fill={`url(#grid-${i})`} />
+                      </svg>
+                    </div>
+
+                    <div className="absolute -right-4 -bottom-4 h-24 w-24 text-white/[0.02] pointer-events-none group-hover:scale-125 transition-transform duration-500">
+                      <svg className="h-full w-full" fill="currentColor" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="1" strokeDasharray="4,4" fill="none" />
+                        <line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" strokeWidth="0.5" />
+                        <line x1="50" y1="10" x2="50" y2="90" stroke="currentColor" strokeWidth="0.5" />
+                      </svg>
+                    </div>
+
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className={`rounded-xl border px-2.5 py-1 text-[10px] font-bold ${q.color}`}>
+                        {q.badge}
+                      </span>
+                      <div className={`p-2 rounded-xl border group-hover:scale-110 transition duration-300 ${q.iconColor}`}>
+                        <IconComp size={18} />
+                      </div>
+                    </div>
+                    <h4 className="mt-4 text-base font-black text-white group-hover:text-white transition relative z-10">
+                      {q.type}
+                    </h4>
+                    <p className="mt-2 text-xs text-slate-400 leading-relaxed group-hover:text-slate-200 transition relative z-10">
+                      {q.desc}
+                    </p>
                   </div>
-                  <h4 className="mt-3 text-sm font-black text-white group-hover:text-indigo-200 transition">
-                    {q.type}
-                  </h4>
-                  <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-                    {q.desc}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
+                </ScrollReveal>
+              );
+            })}
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "./ui";
 import { TopLoader } from "./top-loader";
 import { AnimationProvider } from "./animation-provider";
+import { ScrollEffects } from "./scroll-effects";
 import type { AnimationSettings } from "@/lib/animation-config";
 
 export function Providers({
@@ -22,6 +23,7 @@ export function Providers({
             <TopLoader />
           </Suspense>
           {children}
+          <ScrollEffects />
         </ToastProvider>
       </AnimationProvider>
     </I18nProvider>

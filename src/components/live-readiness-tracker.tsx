@@ -102,9 +102,9 @@ export function LiveReadinessTracker({
                 title={isReady ? `${name} প্রস্তুত` : `${name} অপেক্ষা করছে`}
               >
                 <span
-                  className={`grid h-5 w-5 place-items-center rounded-full text-[11px] bg-gradient-to-br ${bg}`}
+                  className={`relative grid h-5 w-5 place-items-center rounded-full text-[11px] bg-gradient-to-br ${bg} border border-white/10 overflow-hidden shadow-xs shrink-0`}
                 >
-                  {avatar}
+                  <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">{avatar}</span>
                 </span>
                 <span className="max-w-[100px] truncate">{name}</span>
                 <span>{isReady ? "✓" : "⏳"}</span>

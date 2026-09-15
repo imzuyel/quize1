@@ -595,23 +595,39 @@ function AIPageInner() {
         </Field>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
         {COUNTS.map((c) => (
-          <button key={c} onClick={() => setCount(c)}
-            className={cx("rounded-lg border px-3 py-1.5 text-xs font-bold",
-              count === c ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]")}>
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCount(c)}
+            className={cx(
+              "rounded-xl border px-3.5 py-1.5 text-xs font-black transition-all shadow-sm",
+              count === c
+                ? "border-teal-600 bg-teal-600 text-white shadow-teal-500/20"
+                : "border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200 hover:text-slate-950 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            )}
+          >
             {c}
           </button>
         ))}
       </div>
 
       <div className="mt-4">
-        <p className="mb-1.5 text-xs font-semibold text-slate-600">ডিফিকাল্টি</p>
+        <p className="mb-2 text-xs font-black text-slate-800 dark:text-slate-200">ডিফিকাল্টি</p>
         <div className="flex flex-wrap gap-1.5">
-          {[["easy", "সহজ"], ["medium", "মাঝারি"], ["hard", "কঠিন"], ["custom", "কাস্টম মিশ্রণ"]].map(([v, l]) => (
-            <button key={v} onClick={() => setDifficulty(v)}
-              className={cx("rounded-lg border px-3 py-1.5 text-xs font-bold",
-                difficulty === v ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]")}>
+          {[["easy", "🟢 সহজ"], ["medium", "🟡 মাঝারি"], ["hard", "🔴 কঠিন"], ["custom", "⚙️ কাস্টম মিশ্রণ"]].map(([v, l]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setDifficulty(v)}
+              className={cx(
+                "rounded-xl border px-3.5 py-1.5 text-xs font-black transition-all shadow-sm",
+                difficulty === v
+                  ? "border-teal-600 bg-teal-600 text-white shadow-teal-500/20"
+                  : "border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200 hover:text-slate-950 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              )}
+            >
               {l}
             </button>
           ))}
@@ -628,21 +644,38 @@ function AIPageInner() {
       </div>
 
       <div className="mt-4">
-        <p className="mb-1.5 text-xs font-semibold text-slate-600">প্রশ্নের ধরন</p>
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <p className="mb-2 text-xs font-black text-slate-800 dark:text-slate-200">প্রশ্নের ধরন</p>
+        <div className="mb-2.5 flex flex-wrap gap-2">
           {TYPE_PRESETS.map((p) => (
-            <Button key={p.label} size="sm" variant="outline" onClick={() => setTypes(p.types)}>{p.label}</Button>
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setTypes(p.types)}
+              className="rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-black px-3.5 py-1.5 text-xs transition shadow-sm dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-200"
+            >
+              {p.label}
+            </button>
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {QUESTION_TYPES.map((t) => (
-            <button key={t.value}
-              onClick={() => setTypes((s) => (s.includes(t.value) ? s.filter((x) => x !== t.value) : [...s, t.value]))}
-              className={cx("rounded-lg border px-2.5 py-1.5 text-xs font-semibold",
-                types.includes(t.value) ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]")}>
-              {t.labelBn}
-            </button>
-          ))}
+          {QUESTION_TYPES.map((t) => {
+            const isSelected = types.includes(t.value);
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTypes((s) => (s.includes(t.value) ? s.filter((x) => x !== t.value) : [...s, t.value]))}
+                className={cx(
+                  "rounded-xl border px-3 py-1.5 text-xs font-bold transition-all shadow-sm",
+                  isSelected
+                    ? "border-teal-600 bg-teal-600 text-white shadow-teal-500/20"
+                    : "border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200 hover:text-slate-950 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                )}
+              >
+                {t.labelBn}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -676,34 +709,43 @@ function AIPageInner() {
         subtitle="বিষয় লিখে এআই দিয়ে, তৈরি প্রশ্ন পেস্ট করে, অথবা PDF/বই থেকে"
       />
 
-      <Card className="overflow-hidden border border-teal-500/30 bg-slate-950 text-white p-6 shadow-2xl">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative overflow-hidden rounded-3xl border border-teal-500/40 bg-gradient-to-br from-slate-900 via-[#0a1128] to-slate-950 text-white p-6 sm:p-7 shadow-2xl">
+        <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" />
+        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <span className="inline-block rounded-lg bg-teal-500/20 px-2.5 py-1 text-xs font-black uppercase tracking-[0.18em] text-teal-300 border border-teal-400/40">
-              PGTSC AI QUIZ STUDIO
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/50 bg-teal-500/20 px-3 py-1 text-xs font-black uppercase tracking-wider text-teal-300 shadow-sm">
+              ✨ PGTSC AI QUIZ STUDIO
             </span>
-            <h2 className="mt-2 text-xl font-black text-white sm:text-2xl drop-shadow-md">
-              কয়েক মিনিটে classroom-ready quiz
+            <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl drop-shadow-md">
+              কয়েক মিনিটে Classroom-Ready Quiz
             </h2>
-            <p className="mt-1.5 max-w-2xl text-sm font-medium text-slate-200 leading-relaxed">
+            <p className="mt-2 max-w-2xl text-sm sm:text-base font-medium text-slate-200 leading-relaxed">
               টপিক, নিজের নোট বা বই দিন। AI draft বানাবে; আপনি review করে পছন্দের প্রশ্ন নিয়ে সরাসরি live quiz চালাতে পারবেন।
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="rounded-xl border border-white/10 bg-white/10 p-3 text-white font-bold"><b className="block text-lg text-teal-300">1</b>Generate</div>
-            <div className="rounded-xl border border-white/10 bg-white/10 p-3 text-white font-bold"><b className="block text-lg text-amber-300">2</b>Review</div>
-            <div className="rounded-xl border border-white/10 bg-white/10 p-3 text-white font-bold"><b className="block text-lg text-emerald-300">3</b>Go Live</div>
+          <div className="grid grid-cols-3 gap-2.5 text-center text-xs shrink-0">
+            <div className="rounded-2xl border border-teal-400/30 bg-teal-500/10 p-3 text-white font-black"><b className="block text-xl text-teal-300">1</b>Generate</div>
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3 text-white font-black"><b className="block text-xl text-amber-300">2</b>Review</div>
+            <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-white font-black"><b className="block text-xl text-emerald-300">3</b>Go Live</div>
           </div>
         </div>
-        <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
+        <div className="relative z-10 mt-6 grid gap-3 sm:grid-cols-3">
           {presets.map((p) => (
-            <button key={p.name} onClick={() => applyPreset(p)} className="rounded-xl border border-teal-500/20 bg-slate-900/90 p-3.5 text-left transition hover:border-teal-400 hover:bg-slate-800">
-              <span className="text-xl">{p.icon}</span> <span className="font-bold text-white">{p.name}</span>
-              <span className="mt-1 block text-xs font-medium text-slate-300">{p.desc}</span>
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => applyPreset(p)}
+              className="group rounded-2xl border border-teal-500/30 bg-slate-900/90 p-4 text-left transition-all hover:scale-[1.02] hover:border-teal-400 hover:bg-slate-800 shadow-lg"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl group-hover:scale-110 transition-transform">{p.icon}</span>
+                <span className="font-black text-white text-sm sm:text-base group-hover:text-teal-300 transition-colors">{p.name}</span>
+              </div>
+              <span className="mt-1.5 block text-xs font-medium text-slate-300 leading-snug">{p.desc}</span>
             </button>
           ))}
         </div>
-      </Card>
+      </div>
 
       {provider ? (
         <Card className={provider.configured ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}>
@@ -938,15 +980,26 @@ function AIPageInner() {
               PDF, DOCX, PPTX, TXT (সর্বোচ্চ ৪০MB)। স্ক্যান করা ছবি-ভিত্তিক PDF থেকে টেক্সট পড়া যায় না।
             </p>
             {recentDocs.length ? (
-              <div className="mt-3">
-                <p className="mb-1.5 text-xs font-bold uppercase text-slate-400">আগের আপলোড</p>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-black uppercase text-slate-500 dark:text-slate-400">আগের আপলোড</p>
+                <div className="flex flex-wrap gap-2">
                   {recentDocs.map((d) => (
-                    <button key={d.id}
-                      onClick={() => { setDoc({ documentId: d.id, name: d.name, pageCount: d.pageCount, chars: 0, method: d.method, outline: d.outline ?? [] }); setPageFrom(1); setPageTo(d.pageCount); }}
-                      className={cx("rounded-lg border px-2.5 py-1.5 text-xs font-semibold",
-                        doc?.documentId === d.id ? "border-[var(--pg-teal)] bg-teal-50" : "border-[var(--pg-line)]")}>
-                      📘 {d.name} · {d.pageCount}পেজ
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => {
+                        setDoc({ documentId: d.id, name: d.name, pageCount: d.pageCount, chars: 0, method: d.method, outline: d.outline ?? [] });
+                        setPageFrom(1);
+                        setPageTo(d.pageCount);
+                      }}
+                      className={cx(
+                        "rounded-xl border px-3 py-1.5 text-xs font-bold transition shadow-sm",
+                        doc?.documentId === d.id
+                          ? "border-teal-600 bg-teal-600 text-white shadow-teal-500/20"
+                          : "border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                      )}
+                    >
+                      📘 {d.name} · {d.pageCount} পেজ
                     </button>
                   ))}
                 </div>

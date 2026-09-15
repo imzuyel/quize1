@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { TechBackground } from "@/components/tech-background";
 import { buildJsonLd, getSeo, resolveSiteUrl } from "@/lib/seo";
 import { getAnimationSettings } from "@/lib/animation-config-server";
 
@@ -112,7 +113,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="antialiased">
-        <Providers animationSettings={animationSettings}>{children}</Providers>
+        <Providers animationSettings={animationSettings}>
+          <TechBackground />
+          {children}
+        </Providers>
       </body>
     </html>
   );

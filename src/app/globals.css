@@ -62,8 +62,6 @@ body {
 }
 
 .pg-surface {
-  background: #ffffff;
-  color: var(--pg-ink, #0f172a);
   border: 1px solid var(--pg-line);
   border-radius: var(--radius);
   padding: 1.5rem;
@@ -73,6 +71,14 @@ body {
               background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.pg-surface:not([class*="bg-"]):not([class*="from-"]) {
+  background: #ffffff;
+}
+
+.pg-surface:not([class*="text-"]) {
+  color: var(--pg-ink, #0f172a);
+}
+
 .pg-surface p,
 .pg-surface li {
   font-weight: 500;
@@ -80,19 +86,19 @@ body {
 }
 
 /* --- LIGHT CARD TYPOGRAPHY (Default) --- */
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) label,
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) .pg-label,
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) h1,
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) h2,
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) h3,
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) h4 {
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) label,
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) .pg-label,
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) h1,
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) h2,
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) h3,
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) h4 {
   color: #0f172a;
   font-weight: 800;
   letter-spacing: -0.01em;
 }
 
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) .text-slate-500,
-.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not(.text-white) .text-slate-600 {
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) .text-slate-500,
+.pg-surface:not([class*="bg-slate-9"]):not([class*="bg-slate-8"]):not([class*="bg-teal-9"]):not([class*="bg-black"]):not([class*="from-"]):not(.text-white) .text-slate-600 {
   color: #334155;
   font-weight: 500;
 }
@@ -114,7 +120,7 @@ body {
 .pg-surface[class*="bg-black"] h1, .pg-surface[class*="bg-black"] h2, .pg-surface[class*="bg-black"] h3, .pg-surface[class*="bg-black"] h4,
 .pg-surface.text-white h1, .pg-surface.text-white h2, .pg-surface.text-white h3, .pg-surface.text-white h4,
 .pg-surface.text-white label, .pg-surface.text-white .pg-label {
-  color: #ffffff !important;
+  color: #ffffff;
   font-weight: 800;
 }
 
@@ -965,45 +971,73 @@ html.dark .pg-surface { background: rgba(18, 27, 50, .88); border-color: rgba(90
 /* -------------------------------------------------------------------------- */
 .scroll-reveal {
   opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
+  transform: none;
+  transition-property: opacity, transform;
+  transition-duration: 600ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
 }
 
-.scroll-reveal-hidden[data-reveal-variant="fade"] {
-  opacity: 0;
+.scroll-reveal-animating {
+  pointer-events: none; /* Disable interaction while fading in */
 }
-.scroll-reveal-hidden[data-reveal-variant="fade-up"] {
-  opacity: 0;
-  transform: translate3d(0, 24px, 0);
+.scroll-reveal-animating[data-reveal-variant="fade"] {
+  opacity: 0 !important;
 }
-.scroll-reveal-hidden[data-reveal-variant="fade-down"] {
-  opacity: 0;
-  transform: translate3d(0, -24px, 0);
+.scroll-reveal-animating[data-reveal-variant="fade-up"] {
+  opacity: 0 !important;
+  transform: translate3d(0, 24px, 0) !important;
 }
-.scroll-reveal-hidden[data-reveal-variant="fade-left"] {
-  opacity: 0;
-  transform: translate3d(24px, 0, 0);
+.scroll-reveal-animating[data-reveal-variant="fade-down"] {
+  opacity: 0 !important;
+  transform: translate3d(0, -24px, 0) !important;
 }
-.scroll-reveal-hidden[data-reveal-variant="fade-right"] {
-  opacity: 0;
-  transform: translate3d(-24px, 0, 0);
+.scroll-reveal-animating[data-reveal-variant="fade-left"] {
+  opacity: 0 !important;
+  transform: translate3d(24px, 0, 0) !important;
 }
-.scroll-reveal-hidden[data-reveal-variant="zoom-in"] {
-  opacity: 0;
-  transform: scale(0.95) translate3d(0, 12px, 0);
+.scroll-reveal-animating[data-reveal-variant="fade-right"] {
+  opacity: 0 !important;
+  transform: translate3d(-24px, 0, 0) !important;
 }
-.scroll-reveal-hidden[data-reveal-variant="subtle-slide"] {
-  opacity: 0;
-  transform: translate3d(0, 16px, 0);
+.scroll-reveal-animating[data-reveal-variant="zoom-in"] {
+  opacity: 0 !important;
+  transform: scale(0.95) translate3d(0, 12px, 0) !important;
+}
+.scroll-reveal-animating[data-reveal-variant="subtle-slide"] {
+  opacity: 0 !important;
+  transform: translate3d(0, 16px, 0) !important;
 }
 
 .scroll-reveal-visible {
   opacity: 1 !important;
-  transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+/* Custom ScrollReveal scroll-animation classes */
+.scroll-animation {
+  opacity: 1;
+  transform: none;
+  transition-property: opacity, transform;
+  transition-duration: 600ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.scroll-reveal-animating.scroll-animation,
+.scroll-reveal-animating .scroll-animation {
+  opacity: 0 !important;
+  transform: translate3d(0, 24px, 0) !important;
+}
+
+.scroll-reveal-visible.scroll-animation,
+.scroll-reveal-visible .scroll-animation {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .scroll-reveal,
-  .scroll-reveal-hidden,
+  .scroll-reveal-animating,
   .scroll-reveal-visible {
     opacity: 1 !important;
     transform: none !important;
@@ -1011,11 +1045,383 @@ html.dark .pg-surface { background: rgba(18, 27, 50, .88); border-color: rgba(90
   }
 }
 
-body.motion-low .scroll-reveal,
-body.motion-low .scroll-reveal-hidden,
-body.motion-low .scroll-reveal-visible {
-  opacity: 1 !important;
-  transform: none !important;
-  transition: none !important;
+/* -------------------------------------------------------------------------- */
+/* Sticky Headers on Scroll                                                   */
+/* -------------------------------------------------------------------------- */
+header.sticky, header.fixed, header {
+  transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              backdrop-filter 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
+
+/* Landing Page Header / Public Header on Scroll */
+body.is-scrolled header.sticky,
+body.is-scrolled header.fixed {
+  background-color: rgba(6, 10, 30, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5) !important;
+  border-color: rgba(20, 184, 166, 0.25) !important;
+}
+
+/* AppShell Light Mode Header on Scroll */
+body.is-scrolled .min-h-screen > header.sticky {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* AppShell Dark Mode Header on Scroll */
+html.dark body.is-scrolled .min-h-screen > header.sticky {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Premium Dark Tech Grid Background Styles                                  */
+/* -------------------------------------------------------------------------- */
+.premium-tech-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -50;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  background-color: #060a1e; /* default to brand deep base */
+  transition: background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.dark .premium-tech-bg {
+  background-color: #040714; /* deep premium tech dark space */
+}
+
+/* Base grid mask with radial fade */
+.premium-tech-mask {
+  position: absolute;
+  inset: 0;
+  mask-image: radial-gradient(ellipse at 50% 40%, black 45%, transparent 95%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 45%, transparent 95%);
+}
+
+@media (max-width: 768px) {
+  .premium-tech-mask {
+    mask-image: radial-gradient(ellipse at 50% 30%, black 35%, transparent 90%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 35%, transparent 90%);
+  }
+}
+
+/* Primary Architectural grid lines */
+.premium-tech-grid-primary {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(20, 184, 166, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 184, 166, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+html.dark .premium-tech-grid-primary {
+  background-image: 
+    linear-gradient(to right, rgba(45, 212, 191, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(45, 212, 191, 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Secondary Fine Micro Grid lines */
+.premium-tech-grid-secondary {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(99, 102, 241, 0.01) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.01) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+html.dark .premium-tech-grid-secondary {
+  background-image: 
+    linear-gradient(to right, rgba(124, 58, 237, 0.012) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(124, 58, 237, 0.012) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Ambient Radial Glow Layers (designed with hardware acceleration) */
+.premium-tech-glow-teal {
+  position: absolute;
+  top: -10%;
+  left: 10%;
+  width: 65vw;
+  height: 65vw;
+  max-width: 900px;
+  max-height: 900px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.1) 0%, rgba(20, 184, 166, 0.02) 50%, transparent 100%);
+  filter: blur(80px);
+  opacity: 0.8;
+  will-change: transform, filter, opacity;
+}
+
+html.dark .premium-tech-glow-teal {
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.12) 0%, rgba(20, 184, 166, 0.03) 55%, transparent 100%);
+}
+
+.premium-tech-glow-purple {
+  position: absolute;
+  top: 25%;
+  right: -5%;
+  width: 55vw;
+  height: 55vw;
+  max-width: 800px;
+  max-height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.06) 0%, rgba(99, 102, 241, 0.01) 50%, transparent 100%);
+  filter: blur(90px);
+  opacity: 0.7;
+  will-change: transform, filter, opacity;
+}
+
+html.dark .premium-tech-glow-purple {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.09) 0%, rgba(99, 102, 241, 0.02) 60%, transparent 100%);
+}
+
+.premium-tech-glow-amber {
+  position: absolute;
+  bottom: 10%;
+  left: 15%;
+  width: 45vw;
+  height: 45vw;
+  max-width: 600px;
+  max-height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(240, 180, 41, 0.03) 0%, rgba(240, 180, 41, 0.005) 50%, transparent 100%);
+  filter: blur(100px);
+  opacity: 0.6;
+  will-change: transform, filter, opacity;
+}
+
+html.dark .premium-tech-glow-amber {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.05) 0%, rgba(217, 119, 6, 0.01) 50%, transparent 100%);
+}
+
+/* Subtle tech scanning lines / wireframes */
+.premium-tech-lines {
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+}
+
+.premium-tech-line-h1 {
+  position: absolute;
+  top: 20%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.08) 20%, rgba(20, 184, 166, 0.15) 50%, rgba(20, 184, 166, 0.08) 80%, transparent);
+}
+
+.premium-tech-line-h2 {
+  position: absolute;
+  top: 70%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.05) 20%, rgba(124, 58, 237, 0.12) 50%, rgba(124, 58, 237, 0.05) 80%, transparent);
+}
+
+/* Subtle Vignette overlay to tie everything together */
+.premium-tech-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 30%, rgba(6, 10, 30, 0.15) 80%, rgba(6, 10, 30, 0.35) 100%);
+}
+
+html.dark .premium-tech-vignette {
+  background: radial-gradient(circle at center, transparent 30%, rgba(4, 7, 20, 0.25) 80%, rgba(4, 7, 20, 0.65) 100%);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Premium Energy Flow Line Animations                                        */
+/* -------------------------------------------------------------------------- */
+
+/* Line 1 (Teal Flow) */
+.premium-tech-flow-line-1-core {
+  stroke: rgba(20, 184, 166, 0.35);
+  stroke-dasharray: 120 1800;
+  stroke-dashoffset: 1920;
+  animation: tech-energy-flow-1 16s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+html.dark .premium-tech-flow-line-1-core {
+  stroke: rgba(45, 212, 191, 0.85);
+  filter: url(#glow-teal);
+}
+
+.premium-tech-flow-line-1-glow {
+  stroke: rgba(20, 184, 166, 0.08);
+  stroke-dasharray: 200 1800;
+  stroke-dashoffset: 2000;
+  animation: tech-energy-flow-1 16s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+html.dark .premium-tech-flow-line-1-glow {
+  stroke: rgba(45, 212, 191, 0.3);
+}
+
+/* Line 2 (Purple Flow) */
+.premium-tech-flow-line-2-core {
+  stroke: rgba(124, 58, 237, 0.25);
+  stroke-dasharray: 120 1800;
+  stroke-dashoffset: 1920;
+  animation: tech-energy-flow-2 20s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  animation-delay: 4s;
+}
+html.dark .premium-tech-flow-line-2-core {
+  stroke: rgba(167, 139, 250, 0.8);
+  filter: url(#glow-purple);
+}
+
+.premium-tech-flow-line-2-glow {
+  stroke: rgba(124, 58, 237, 0.06);
+  stroke-dasharray: 200 1800;
+  stroke-dashoffset: 2000;
+  animation: tech-energy-flow-2 20s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  animation-delay: 4s;
+}
+html.dark .premium-tech-flow-line-2-glow {
+  stroke: rgba(167, 139, 250, 0.25);
+}
+
+/* Line 3 (Amber/Gold Flow) */
+.premium-tech-flow-line-3-core {
+  stroke: rgba(217, 119, 6, 0.2);
+  stroke-dasharray: 90 1500;
+  stroke-dashoffset: 1590;
+  animation: tech-energy-flow-3 24s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  animation-delay: 8s;
+}
+html.dark .premium-tech-flow-line-3-core {
+  stroke: rgba(251, 191, 36, 0.7);
+  filter: url(#glow-amber);
+}
+
+.premium-tech-flow-line-3-glow {
+  stroke: rgba(217, 119, 6, 0.04);
+  stroke-dasharray: 150 1500;
+  stroke-dashoffset: 1650;
+  animation: tech-energy-flow-3 24s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  animation-delay: 8s;
+}
+html.dark .premium-tech-flow-line-3-glow {
+  stroke: rgba(251, 191, 36, 0.2);
+}
+
+/* Line 4 (Short Teal Flow) */
+.premium-tech-flow-line-4-core {
+  stroke: rgba(14, 165, 233, 0.3);
+  stroke-dasharray: 120 1800;
+  stroke-dashoffset: 1920;
+  animation: tech-energy-flow-4 14s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  animation-delay: 6s;
+}
+html.dark .premium-tech-flow-line-4-core {
+  stroke: rgba(56, 189, 248, 0.85);
+  filter: url(#glow-teal);
+}
+
+.premium-tech-flow-line-4-glow {
+  stroke: rgba(14, 165, 233, 0.08);
+  stroke-dasharray: 200 1800;
+  stroke-dashoffset: 2000;
+  animation: tech-energy-flow-4 14s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  animation-delay: 6s;
+}
+html.dark .premium-tech-flow-line-4-glow {
+  stroke: rgba(56, 189, 248, 0.3);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Energy Flow Animation Keyframes (designed for slow/atmospheric sweeps)   */
+/* -------------------------------------------------------------------------- */
+@keyframes tech-energy-flow-1 {
+  0% {
+    stroke-dashoffset: 1920;
+  }
+  50%, 100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes tech-energy-flow-2 {
+  0% {
+    stroke-dashoffset: 1920;
+  }
+  50%, 100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes tech-energy-flow-3 {
+  0% {
+    stroke-dashoffset: 1590;
+  }
+  50%, 100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes tech-energy-flow-4 {
+  0% {
+    stroke-dashoffset: 1920;
+  }
+  55%, 100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  /* scale down glows, grids, and hide secondary flow elements for smaller screens */
+  .premium-tech-grid-primary {
+    background-size: 40px 40px;
+  }
+  .premium-tech-grid-secondary {
+    background-size: 10px 10px;
+  }
+  .premium-tech-glow-teal, .premium-tech-glow-purple, .premium-tech-glow-amber {
+    filter: blur(50px);
+    opacity: 0.55;
+  }
+  /* Reduce energy speed and opacity for lower resource consumption on mobile */
+  .premium-tech-flow-line-1-core,
+  .premium-tech-flow-line-2-core,
+  .premium-tech-flow-line-3-core,
+  .premium-tech-flow-line-4-core {
+    opacity: 0.4;
+    stroke-width: 1px;
+  }
+  .premium-tech-flow-line-1-glow,
+  .premium-tech-flow-line-2-glow,
+  .premium-tech-flow-line-3-glow,
+  .premium-tech-flow-line-4-glow {
+    opacity: 0.05;
+  }
+}
+
+/* Accessibility Support: prefers-reduced-motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  .premium-tech-flow-line-1-core,
+  .premium-tech-flow-line-2-core,
+  .premium-tech-flow-line-3-core,
+  .premium-tech-flow-line-4-core,
+  .premium-tech-flow-line-1-glow,
+  .premium-tech-flow-line-2-glow,
+  .premium-tech-flow-line-3-glow,
+  .premium-tech-flow-line-4-glow {
+    animation: none !important;
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 0.05 !important;
+  }
+}
+
 

@@ -48,17 +48,17 @@ export default async function Home({
           : "/student";
 
   return (
-    <div className="min-h-screen bg-[#070b1e] text-slate-100 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen bg-transparent text-slate-100 selection:bg-teal-500 selection:text-white">
       {/* Top Header - Full Screen Ultra Glass Design */}
-      <header className="sticky top-0 z-50 border-b border-teal-500/20 bg-[#060a1e]/90 shadow-2xl backdrop-blur-2xl">
+      <header className="sticky top-0 z-50 border-b border-teal-500/20 bg-[#060a1e]/45 shadow-2xl backdrop-blur-2xl">
         <div className="w-full max-w-[1700px] mx-auto flex h-16 items-center justify-between gap-4 px-4 sm:px-8 lg:px-12 xl:px-16">
           <Link href="/" className="flex items-center gap-3 group">
             <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-teal-400 via-indigo-500 to-violet-600 font-black text-white shadow-lg shadow-teal-500/30 text-base group-hover:scale-105 transition-transform">
               🎮
             </span>
-            <div className="leading-tight">
-              <p className="text-sm sm:text-base font-black text-white tracking-wide group-hover:text-teal-300 transition-colors">{seo.siteName}</p>
-              <p className="hidden text-[10px] text-teal-300/80 font-bold sm:block">{seo.siteNameEn}</p>
+            <div className="leading-tight max-w-[130px] xs:max-w-[200px] sm:max-w-xs md:max-w-none">
+              <p className="text-sm sm:text-base font-black text-white tracking-wide group-hover:text-teal-300 transition-colors truncate">{seo.siteName}</p>
+              <p className="hidden text-[10px] text-teal-300/80 font-bold sm:block truncate">{seo.siteNameEn}</p>
             </div>
           </Link>
 
@@ -133,7 +133,7 @@ export default async function Home({
       <HomeGameFeatures />
 
       {/* 4. Interactive Live Feature Preview Tab Component */}
-      <section className="relative w-full bg-[#0a0f26] py-16 px-4 sm:px-8 lg:px-14 xl:px-20 border-t border-slate-800/80">
+      <section className="relative w-full bg-transparent py-16 px-4 sm:px-8 lg:px-14 xl:px-20 border-t border-slate-800/80 overflow-hidden">
         <div className="max-w-[1700px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-5 space-y-4">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-3.5 py-1 text-xs font-bold text-violet-300">
@@ -170,7 +170,7 @@ export default async function Home({
       <HomeFeatures />
 
       {/* 6. Core Platform Features Bento Grid */}
-      <section className="relative w-full bg-slate-950 py-20 px-4 sm:px-8 lg:px-14 xl:px-20 border-t border-slate-800">
+      <section className="relative w-full bg-transparent py-20 px-4 sm:px-8 lg:px-14 xl:px-20 border-t border-slate-800">
         <div className="max-w-[1700px] mx-auto">
           <div className="text-center max-w-3xl mx-auto">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 px-4 py-1.5 text-xs font-bold text-teal-300">
@@ -189,9 +189,9 @@ export default async function Home({
               <a
                 key={f.title}
                 href={demoMode ? f.href : "/login"}
-                className="group relative rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-teal-400/60 hover:bg-slate-900 shadow-xl overflow-hidden"
+                className="group relative rounded-3xl border border-teal-500/20 bg-slate-900/80 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1.5 hover:border-teal-400/60 hover:bg-slate-900 shadow-xl overflow-hidden block ring-1 ring-teal-500/10 hover:shadow-[0_0_30px_rgba(20,184,166,0.2)]"
               >
-                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-500/10 border border-teal-400/30 text-2xl group-hover:scale-110 transition-transform">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-500/15 border border-teal-400/30 text-2xl group-hover:scale-110 transition-transform">
                   {f.icon}
                 </div>
                 <h3 className="mt-4 text-lg font-black text-white group-hover:text-teal-300 transition">
@@ -212,7 +212,7 @@ export default async function Home({
 
       {/* 6. Multi-Role Direct Entry Showcase */}
       {demoMode ? (
-        <section id="roles" className="relative w-full scroll-mt-20 border-t border-slate-800 bg-[#090e24] py-16 px-4 sm:px-8 lg:px-14 xl:px-20">
+        <section id="roles" className="relative w-full scroll-mt-20 border-t border-slate-800 bg-transparent py-16 px-4 sm:px-8 lg:px-14 xl:px-20">
           <div className="max-w-7xl mx-auto">
             <div className="text-center max-w-2xl mx-auto">
               <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-400">
@@ -233,7 +233,7 @@ export default async function Home({
       ) : null}
 
       {/* 7. Developer & Institutional Credits */}
-      <section className="relative w-full border-t border-slate-800/80 bg-slate-950 py-16 px-4 sm:px-8 lg:px-14 xl:px-20 overflow-hidden">
+      <section className="relative w-full border-t border-slate-800/80 bg-transparent py-16 px-4 sm:px-8 lg:px-14 xl:px-20 overflow-hidden">
         {/* Subtle Ambient Radial Glow Effect */}
         <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-b from-teal-500/15 via-emerald-500/10 to-transparent rounded-full blur-3xl opacity-70" />
         <div className="pointer-events-none absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
@@ -288,4 +288,3 @@ export default async function Home({
     </div>
   );
 }
-

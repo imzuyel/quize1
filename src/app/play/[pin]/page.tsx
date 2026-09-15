@@ -320,8 +320,9 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
                   const { avatar, name, bg } = parsePlayerAvatar(me.nickname, me.id);
                   return (
                     <div className="flex flex-col items-center">
-                      <div className={`grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br ${bg} text-4xl shadow-xl animate-bounce`}>
-                        {avatar}
+                      <div className={`relative grid h-24 w-24 place-items-center rounded-[2rem] bg-gradient-to-br ${bg} text-5xl shadow-2xl animate-bounce border-2 border-white/20 overflow-hidden`}>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent pointer-events-none" />
+                        <span className="drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)] select-none z-10">{avatar}</span>
                       </div>
                       <span className="mt-2 text-xl font-black text-slate-900">{name}</span>
                       <span className="rounded-full bg-emerald-100 text-emerald-800 px-3 py-0.5 text-xs font-bold mt-1">
@@ -357,8 +358,8 @@ export default function PlayPage({ params }: { params: Promise<{ pin: string }> 
                         isMe ? "bg-[var(--pg-deep)] text-white ring-2 ring-cyan-400" : "bg-slate-100 text-slate-700",
                       )}
                     >
-                      <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] bg-gradient-to-br ${bg}`}>
-                        {avatar}
+                      <span className={`relative grid h-5 w-5 place-items-center rounded-full text-[11px] bg-gradient-to-br ${bg} shadow-xs border border-white/10 overflow-hidden shrink-0`}>
+                        <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">{avatar}</span>
                       </span>
                       <span>{name}</span>
                     </span>

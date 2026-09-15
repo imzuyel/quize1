@@ -141,63 +141,65 @@ export default function StudentDashboard() {
       ) : null}
 
       {/* Student Hero */}
-      <div className="pg-hero-bg pg-shadow relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white border border-indigo-500/30">
-        <div className={cx("pg-grid-lines absolute inset-0 opacity-40 transition-all", animateGrid && "pg-grid-animated")} />
-        <div className="relative flex flex-wrap items-center justify-between gap-6">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 px-3 py-1 text-xs font-bold text-teal-300">
-                🎓 শিক্ষার্থী ড্যাশবোর্ড
-              </span>
-              <button
-                type="button"
-                onClick={() => setAnimateGrid((v) => !v)}
-                className={cx(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all border cursor-pointer",
-                  animateGrid
-                    ? "bg-teal-400 text-slate-950 border-teal-300 shadow-sm shadow-teal-400/50"
-                    : "bg-white/10 text-white/80 hover:bg-white/20 border-white/20"
-                )}
-                title="ব্যাকগ্রাউন্ড গ্রিড অ্যানিমেশন চালু/বন্ধ করুন"
-              >
-                ✨ {animateGrid ? "Animate: ON" : "Animate"}
-              </button>
-            </div>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-black">স্বাগতম! আজ কী শিখবেন?</h1>
-            <p className="mt-1 text-xs sm:text-sm text-slate-300">
-              লাইভ ক্লাসরুম কুইজে যোগ দিন, বিষয়ভিত্তিক অনুশীলন করুন এবং লিডারবোর্ডে নিজের অবস্থান উন্নত করুন।
-            </p>
+      <ScrollReveal variant="fade" className="scroll-animation">
+        <div className="pg-hero-bg pg-shadow relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white border border-indigo-500/30">
+          <div className={cx("pg-grid-lines absolute inset-0 opacity-40 transition-all", animateGrid && "pg-grid-animated")} />
+          <div className="relative flex flex-wrap items-center justify-between gap-6">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 px-3 py-1 text-xs font-bold text-teal-300">
+                  🎓 শিক্ষার্থী ড্যাশবোর্ড
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAnimateGrid((v) => !v)}
+                  className={cx(
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all border cursor-pointer",
+                    animateGrid
+                      ? "bg-teal-400 text-slate-950 border-teal-300 shadow-sm shadow-teal-400/50"
+                      : "bg-white/10 text-white/80 hover:bg-white/20 border-white/20"
+                  )}
+                  title="ব্যাকগ্রাউন্ড গ্রিড অ্যানিমেশন চালু/বন্ধ করুন"
+                >
+                  ✨ {animateGrid ? "Animate: ON" : "Animate"}
+                </button>
+              </div>
+              <h1 className="mt-2 text-2xl sm:text-3xl font-black">স্বাগতম! আজ কী শিখবেন?</h1>
+              <p className="mt-1 text-xs sm:text-sm text-slate-300">
+                লাইভ ক্লাসরুম কুইজে যোগ দিন, বিষয়ভিত্তিক অনুশীলন করুন এবং লিডারবোর্ডে নিজের অবস্থান উন্নত করুন।
+              </p>
 
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              <Link href="/join">
-                <Button variant="gold" className="font-black text-slate-950 shadow-md">
-                  🎮 লাইভ কুইজে যোগ দিন
-                </Button>
-              </Link>
-              <Link href="/student/practice">
-                <Button variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold">
-                  📚 স্ব-অনুশীলন
-                </Button>
-              </Link>
-              <Link href="/leaderboard">
-                <Button variant="ghost" className="text-white hover:bg-white/10 font-bold">
-                  🏆 সেরা তালিকা
-                </Button>
-              </Link>
+              <div className="mt-5 flex flex-wrap gap-2.5">
+                <Link href="/join">
+                  <Button variant="gold" className="font-black text-slate-950 shadow-md">
+                    🎮 লাইভ কুইজে যোগ দিন
+                  </Button>
+                </Link>
+                <Link href="/student/practice">
+                  <Button variant="outline" className="border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold">
+                    📚 স্ব-অনুশীলন
+                  </Button>
+                </Link>
+                <Link href="/leaderboard">
+                  <Button variant="ghost" className="text-white hover:bg-white/10 font-bold">
+                    🏆 সেরা তালিকা
+                  </Button>
+                </Link>
+              </div>
             </div>
+
+            {/* Animated Level Progress with Smooth Bar & Shimmer */}
+            <AnimatedLevelProgressBar
+              currentXp={data.xp}
+              currentLevel={level}
+              nextLevel={next}
+            />
           </div>
-
-          {/* Animated Level Progress with Smooth Bar & Shimmer */}
-          <AnimatedLevelProgressBar
-            currentXp={data.xp}
-            currentLevel={level}
-            nextLevel={next}
-          />
         </div>
-      </div>
+      </ScrollReveal>
 
       {/* Quick PIN Join Banner */}
-      <ScrollReveal variant="fade-up" duration={550}>
+      <ScrollReveal variant="fade-up" duration={550} className="scroll-animation">
         <div className="rounded-3xl border-2 border-teal-500/30 bg-gradient-to-r from-teal-950/70 via-slate-900/90 to-indigo-950/70 p-5 shadow-lg backdrop-blur flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🔑</span>
@@ -234,13 +236,13 @@ export default function StudentDashboard() {
       </ScrollReveal>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <ScrollReveal variant="fade-up" delay={0} duration={500}>
+        <ScrollReveal variant="fade-up" delay={0} duration={500} className="scroll-animation">
           <StatCard label="সম্পন্ন কুইজ" value={data.completedExams} icon="📝" tone="blue" />
         </ScrollReveal>
-        <ScrollReveal variant="fade-up" delay={80} duration={500}>
+        <ScrollReveal variant="fade-up" delay={80} duration={500} className="scroll-animation">
           <StatCard label="আমার র‍্যাংক" value={`#${data.rank}`} icon="🏅" tone="gold" />
         </ScrollReveal>
-        <ScrollReveal variant="fade-up" delay={160} duration={500} className="col-span-2 lg:col-span-1">
+        <ScrollReveal variant="fade-up" delay={160} duration={500} className="scroll-animation col-span-2 lg:col-span-1">
           <div className="rounded-2xl border border-[var(--pg-line)] bg-white p-4 shadow-sm flex flex-col justify-between h-full">
             <div className="flex items-center justify-between">
               <div>
@@ -276,39 +278,43 @@ export default function StudentDashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <SectionTitle title="সুপারিশকৃত কুইজ" action={<Link href="/student/quizzes"><Button size="sm" variant="outline">সব</Button></Link>} />
-          {quizzes.length === 0 ? (
-            <EmptyState title="কোনো কুইজ নেই" />
-          ) : (
-            <div className="space-y-2">
-              {quizzes.map((q) => (
-                <div key={q.id} className="flex items-center gap-2 rounded-xl border border-[var(--pg-line)] p-3">
-                  <span className="flex-1 text-sm font-semibold">{q.title}</span>
-                  <Badge tone={q.mode === "exam" ? "blue" : "teal"}>{q.mode}</Badge>
-                  <Link href="/student/quizzes"><Button size="sm">শুরু</Button></Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        <ScrollReveal variant="fade-up" className="scroll-animation" delay={80} duration={600}>
+          <Card className="h-full">
+            <SectionTitle title="সুপারিশকৃত কুইজ" action={<Link href="/student/quizzes"><Button size="sm" variant="outline">সব</Button></Link>} />
+            {quizzes.length === 0 ? (
+              <EmptyState title="কোনো কুইজ নেই" />
+            ) : (
+              <div className="space-y-2">
+                {quizzes.map((q) => (
+                  <div key={q.id} className="flex items-center gap-2 rounded-xl border border-[var(--pg-line)] p-3">
+                    <span className="flex-1 text-sm font-semibold">{q.title}</span>
+                    <Badge tone={q.mode === "exam" ? "blue" : "teal"}>{q.mode}</Badge>
+                    <Link href="/student/quizzes"><Button size="sm">শুরু</Button></Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </ScrollReveal>
 
-        <Card>
-          <SectionTitle title="সাম্প্রতিক ফলাফল" action={<Link href="/student/results"><Button size="sm" variant="outline">সব</Button></Link>} />
-          {data.results.length === 0 ? (
-            <EmptyState title="এখনো ফলাফল নেই" />
-          ) : (
-            <div className="space-y-2">
-              {data.results.slice(0, 5).map((r) => (
-                <div key={r.id} className="flex items-center gap-2 rounded-xl border border-[var(--pg-line)] p-3 text-sm">
-                  <span className="flex-1 font-semibold">{r.title}</span>
-                  <Badge tone="gold">#{r.rank || "-"}</Badge>
-                  <span className="font-bold tabular-nums">{Math.round(r.score)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        <ScrollReveal variant="fade-up" className="scroll-animation" delay={160} duration={600}>
+          <Card className="h-full">
+            <SectionTitle title="সাম্প্রতিক ফলাফল" action={<Link href="/student/results"><Button size="sm" variant="outline">সব</Button></Link>} />
+            {data.results.length === 0 ? (
+              <EmptyState title="এখনো ফলাফল নেই" />
+            ) : (
+              <div className="space-y-2">
+                {data.results.slice(0, 5).map((r) => (
+                  <div key={r.id} className="flex items-center gap-2 rounded-xl border border-[var(--pg-line)] p-3 text-sm">
+                    <span className="flex-1 font-semibold">{r.title}</span>
+                    <Badge tone="gold">#{r.rank || "-"}</Badge>
+                    <span className="font-bold tabular-nums">{Math.round(r.score)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </ScrollReveal>
       </div>
 
       {/* Achievement / Badge Unlocked Celebration Modal */}

@@ -272,9 +272,12 @@ export function LiveKahootLobby({
                       >
                         {/* Animated Avatar Icon */}
                         <div
-                          className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${bg} text-2xl shadow-md transform group-hover:rotate-6 transition-transform`}
+                          className={`relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${bg} text-2xl shadow-lg border border-white/10 overflow-hidden transform group-hover:rotate-6 group-hover:scale-105 transition-all duration-300`}
                         >
-                          {avatar}
+                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent pointer-events-none" />
+                          <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.35)] select-none z-10">
+                            {avatar}
+                          </span>
                         </div>
 
                         {/* Nickname */}
