@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 const QUESTION_TYPES = [
   { type: "বহুনির্বাচনী (MCQ)", desc: "৪ বা ৫ অপশনের স্ট্যান্ডার্ড এমসিকিউ সাথে ব্যাখ্যা", badge: "জনপ্রিয়" },
@@ -25,37 +26,40 @@ export function HomeFeatures() {
       <div className="relative max-w-7xl mx-auto space-y-20">
         {/* Section 1: 17+ Question Formats Showcase */}
         <div>
-          <div className="text-center max-w-3xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300">
-              🎯 বৈচিত্র্যময় মূল্যায়ন
-            </span>
-            <h2 className="mt-4 text-2xl sm:text-4xl font-black text-white tracking-tight">
-              ১৭+ ধরনের আধুনিক প্রশ্নের ফরম্যাট
-            </h2>
-            <p className="mt-3 text-sm sm:text-base text-slate-300">
-              শুধু গতানুগতিক টিক চিহ্ন নয় — ব্যবহারিক দক্ষতা, ডায়াগ্রাম চিহ্নিতকরণ ও সমীকরণ সমাধানের উপযোগী।
-            </p>
-          </div>
+          <ScrollReveal variant="fade-up" duration={600}>
+            <div className="text-center max-w-3xl mx-auto">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300">
+                🎯 বৈচিত্র্যময় মূল্যায়ন
+              </span>
+              <h2 className="mt-4 text-2xl sm:text-4xl font-black text-white tracking-tight">
+                ১৭+ ধরনের আধুনিক প্রশ্নের ফরম্যাট
+              </h2>
+              <p className="mt-3 text-sm sm:text-base text-slate-300">
+                শুধু গতানুগতিক টিক চিহ্ন নয় — ব্যবহারিক দক্ষতা, ডায়াগ্রাম চিহ্নিতকরণ ও সমীকরণ সমাধানের উপযোগী।
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {QUESTION_TYPES.map((q) => (
-              <div
-                key={q.type}
-                className="rounded-3xl border border-white/10 bg-slate-950/70 p-5 backdrop-blur-xl hover:border-indigo-400/50 hover:bg-slate-900/80 transition-all duration-200 group hover:-translate-y-1"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 text-[10px] font-bold">
-                    {q.badge}
-                  </span>
-                  <span className="text-xs text-slate-500">ফরম্যাট</span>
+            {QUESTION_TYPES.map((q, i) => (
+              <ScrollReveal key={q.type} variant="fade-up" delay={i * 60} duration={550}>
+                <div
+                  className="rounded-3xl border border-white/10 bg-slate-950/70 p-5 backdrop-blur-xl hover:border-indigo-400/50 hover:bg-slate-900/80 transition-all duration-200 group hover:-translate-y-1"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 text-[10px] font-bold">
+                      {q.badge}
+                    </span>
+                    <span className="text-xs text-slate-500">ফরম্যাট</span>
+                  </div>
+                  <h4 className="mt-3 text-sm font-black text-white group-hover:text-indigo-200 transition">
+                    {q.type}
+                  </h4>
+                  <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+                    {q.desc}
+                  </p>
                 </div>
-                <h4 className="mt-3 text-sm font-black text-white group-hover:text-indigo-200 transition">
-                  {q.type}
-                </h4>
-                <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-                  {q.desc}
-                </p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>

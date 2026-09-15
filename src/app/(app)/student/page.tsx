@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { ScrollReveal } from "@/components/scroll-reveal";
 import {
   Badge,
   Button,
@@ -196,74 +197,82 @@ export default function StudentDashboard() {
       </div>
 
       {/* Quick PIN Join Banner */}
-      <div className="rounded-3xl border-2 border-teal-500/30 bg-gradient-to-r from-teal-950/70 via-slate-900/90 to-indigo-950/70 p-5 shadow-lg backdrop-blur flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">🔑</span>
-          <div>
-            <h3 className="text-base font-black text-white">ক্লাসে শিক্ষক পিন দিয়েছেন?</h3>
-            <p className="text-xs text-slate-300">পিন টাইপ করে সরাসরি লাইভ কুইজে প্রবেশ করুন</p>
+      <ScrollReveal variant="fade-up" duration={550}>
+        <div className="rounded-3xl border-2 border-teal-500/30 bg-gradient-to-r from-teal-950/70 via-slate-900/90 to-indigo-950/70 p-5 shadow-lg backdrop-blur flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🔑</span>
+            <div>
+              <h3 className="text-base font-black text-white">ক্লাসে শিক্ষক পিন দিয়েছেন?</h3>
+              <p className="text-xs text-slate-300">পিন টাইপ করে সরাসরি লাইভ কুইজে প্রবেশ করুন</p>
+            </div>
           </div>
-        </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (pinInput.trim()) {
-              window.location.href = `/join?pin=${encodeURIComponent(pinInput.trim())}`;
-            }
-          }}
-          className="flex items-center gap-2 w-full sm:w-auto"
-        >
-          <input
-            type="text"
-            placeholder="৬ সংখ্যার PIN..."
-            value={pinInput}
-            onChange={(e) => setPinInput(e.target.value)}
-            className="w-full sm:w-44 rounded-2xl border-2 border-teal-400/60 bg-slate-950 px-4 py-2 text-center text-sm font-black tracking-widest text-teal-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400"
-          />
-          <button
-            type="submit"
-            className="whitespace-nowrap rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-500 px-5 py-2.5 text-xs font-black text-slate-950 shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer"
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (pinInput.trim()) {
+                window.location.href = `/join?pin=${encodeURIComponent(pinInput.trim())}`;
+              }
+            }}
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
-            যুক্ত হন →
-          </button>
-        </form>
-      </div>
+            <input
+              type="text"
+              placeholder="৬ সংখ্যার PIN..."
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value)}
+              className="w-full sm:w-44 rounded-2xl border-2 border-teal-400/60 bg-slate-950 px-4 py-2 text-center text-sm font-black tracking-widest text-teal-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400"
+            />
+            <button
+              type="submit"
+              className="whitespace-nowrap rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-500 px-5 py-2.5 text-xs font-black text-slate-950 shadow-md hover:brightness-110 active:scale-95 transition cursor-pointer"
+            >
+              যুক্ত হন →
+            </button>
+          </form>
+        </div>
+      </ScrollReveal>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <StatCard label="সম্পন্ন কুইজ" value={data.completedExams} icon="📝" tone="blue" />
-        <StatCard label="আমার র‍্যাংক" value={`#${data.rank}`} icon="🏅" tone="gold" />
-        <div className="col-span-2 lg:col-span-1 rounded-2xl border border-[var(--pg-line)] bg-white p-4 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500">মোট অর্জন</p>
-              <p className="mt-1 text-2xl font-black text-slate-900">{data.achievements.length} টি ব্যাজ</p>
+        <ScrollReveal variant="fade-up" delay={0} duration={500}>
+          <StatCard label="সম্পন্ন কুইজ" value={data.completedExams} icon="📝" tone="blue" />
+        </ScrollReveal>
+        <ScrollReveal variant="fade-up" delay={80} duration={500}>
+          <StatCard label="আমার র‍্যাংক" value={`#${data.rank}`} icon="🏅" tone="gold" />
+        </ScrollReveal>
+        <ScrollReveal variant="fade-up" delay={160} duration={500} className="col-span-2 lg:col-span-1">
+          <div className="rounded-2xl border border-[var(--pg-line)] bg-white p-4 shadow-sm flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500">মোট অর্জন</p>
+                <p className="mt-1 text-2xl font-black text-slate-900">{data.achievements.length} টি ব্যাজ</p>
+              </div>
+              <span className="text-3xl">🏆</span>
             </div>
-            <span className="text-3xl">🏆</span>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+              <Link href="/student/achievements" className="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+                সব ব্যাজ দেখুন →
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  const sampleBadge = data.achievements[0] || {
+                    id: 999,
+                    name: "Quiz Champion",
+                    nameBn: "কুইজ চ্যাম্পিয়ন",
+                    icon: "👑",
+                    xp: 100,
+                    description: "ধারাবাহিক ভালো পারফরম্যান্স ও শীর্ষ স্থানে পৌঁছানোর জন্য বিশেষ স্বীকৃতি!",
+                  };
+                  setNewAchievement(sampleBadge);
+                }}
+                className="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+              >
+                🎉 অ্যানিমেশন প্রিভিউ
+              </button>
+            </div>
           </div>
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
-            <Link href="/student/achievements" className="text-xs font-bold text-indigo-600 hover:text-indigo-800">
-              সব ব্যাজ দেখুন →
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                const sampleBadge = data.achievements[0] || {
-                  id: 999,
-                  name: "Quiz Champion",
-                  nameBn: "কুইজ চ্যাম্পিয়ন",
-                  icon: "👑",
-                  xp: 100,
-                  description: "ধারাবাহিক ভালো পারফরম্যান্স ও শীর্ষ স্থানে পৌঁছানোর জন্য বিশেষ স্বীকৃতি!",
-                };
-                setNewAchievement(sampleBadge);
-              }}
-              className="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
-            >
-              🎉 অ্যানিমেশন প্রিভিউ
-            </button>
-          </div>
-        </div>
+        </ScrollReveal>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

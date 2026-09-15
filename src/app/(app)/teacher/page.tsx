@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ScrollReveal } from "@/components/scroll-reveal";
 import {
   Badge,
   Button,
@@ -220,15 +221,17 @@ export default function TeacherDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7">
-        {ACTIONS.map((a) => (
-          <Link key={a.href} href={a.href}>
-            <div
-              className={`${a.tone} pg-shadow flex h-full min-h-[104px] flex-col justify-between rounded-2xl p-4 text-white transition hover:-translate-y-0.5`}
-            >
-              <span className="text-2xl">{a.icon}</span>
-              <span className="text-sm font-bold leading-tight">{a.label}</span>
-            </div>
-          </Link>
+        {ACTIONS.map((a, i) => (
+          <ScrollReveal key={a.href} variant="fade-up" delay={i * 40} duration={500}>
+            <Link href={a.href}>
+              <div
+                className={`${a.tone} pg-shadow flex h-full min-h-[104px] flex-col justify-between rounded-2xl p-4 text-white transition hover:-translate-y-0.5`}
+              >
+                <span className="text-2xl">{a.icon}</span>
+                <span className="text-sm font-bold leading-tight">{a.label}</span>
+              </div>
+            </Link>
+          </ScrollReveal>
         ))}
       </div>
 
@@ -241,15 +244,23 @@ export default function TeacherDashboard() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="আমার কুইজ" value={data.totals.quizzes} icon="📚" />
-            <StatCard label="গড় স্কোর" value={data.totals.averageScore} sub="সব ফলাফলের গড়" icon="🎯" tone="gold" />
-            <StatCard label="অংশগ্রহণ" value={`${data.totals.participation}%`} icon="👥" tone="blue" />
-            <StatCard
-              label="গড় উত্তর সময়"
-              value={`${Math.round(data.totals.avgResponseMs / 1000)}s`}
-              icon="⏱️"
-              tone="coral"
-            />
+            <ScrollReveal variant="fade-up" delay={0} duration={550}>
+              <StatCard label="আমার কুইজ" value={data.totals.quizzes} icon="📚" />
+            </ScrollReveal>
+            <ScrollReveal variant="fade-up" delay={80} duration={550}>
+              <StatCard label="গড় স্কোর" value={data.totals.averageScore} sub="সব ফলাফলের গড়" icon="🎯" tone="gold" />
+            </ScrollReveal>
+            <ScrollReveal variant="fade-up" delay={160} duration={550}>
+              <StatCard label="অংশগ্রহণ" value={`${data.totals.participation}%`} icon="👥" tone="blue" />
+            </ScrollReveal>
+            <ScrollReveal variant="fade-up" delay={240} duration={550}>
+              <StatCard
+                label="গড় উত্তর সময়"
+                value={`${Math.round(data.totals.avgResponseMs / 1000)}s`}
+                icon="⏱️"
+                tone="coral"
+              />
+            </ScrollReveal>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">

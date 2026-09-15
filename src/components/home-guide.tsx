@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ScrollReveal } from "@/components/scroll-reveal";
 
 const STEPS = [
   {
@@ -76,17 +77,19 @@ export function HomeGuide() {
 
       <div className="relative max-w-7xl mx-auto">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-500/10 px-4 py-1.5 text-xs font-bold text-teal-300">
-            📖 ধাপে ধাপে নির্দেশিকা
-          </span>
-          <h2 className="mt-4 text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
-            কীভাবে একজন শিক্ষার্থী যুক্ত হবে ও লাইভ কুইজ খেলবে?
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-slate-300">
-            মাত্র চারটি সহজ ধাপে ক্লাসের যে কেউই সেকেন্ডের মধ্যে প্রজেক্টরের সাথে সিঙ্ক হয়ে লাইভ প্রতিযোগিতায় অংশ নিতে পারে।
-          </p>
-        </div>
+        <ScrollReveal variant="fade-up" duration={600}>
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-500/10 px-4 py-1.5 text-xs font-bold text-teal-300">
+              📖 ধাপে ধাপে নির্দেশিকা
+            </span>
+            <h2 className="mt-4 text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+              কীভাবে একজন শিক্ষার্থী যুক্ত হবে ও লাইভ কুইজ খেলবে?
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-slate-300">
+              মাত্র চারটি সহজ ধাপে ক্লাসের যে কেউই সেকেন্ডের মধ্যে প্রজেক্টরের সাথে সিঙ্ক হয়ে লাইভ প্রতিযোগিতায় অংশ নিতে পারে।
+            </p>
+          </div>
+        </ScrollReveal>
 
         {/* Step Navigation Pills */}
         <div className="mt-10 flex flex-wrap items-center justify-center gap-2 sm:gap-3">

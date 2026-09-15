@@ -857,6 +857,31 @@ body {
   border-color: rgba(222, 226, 244, .9);
   border-radius: var(--radius);
   box-shadow: 0 12px 36px -24px rgba(32, 43, 89, .26), 0 2px 6px rgba(32, 43, 89, .03);
+  opacity: 1;
+  will-change: opacity, transform;
+}
+
+@keyframes pg-surface-fade-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.pg-surface[data-visible="false"] {
+  opacity: 0;
+  transform: translate3d(0, 8px, 0);
+  pointer-events: none;
+}
+
+.pg-surface[data-visible="true"],
+.pg-surface.is-visible,
+.pg-surface.animate-fade-in {
+  animation: pg-surface-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .pg-shadow { box-shadow: 0 16px 42px -26px rgba(39, 43, 101, .28), 0 2px 8px rgba(21, 27, 61, .03); }
 .pg-glass { background: rgba(255,255,255,.72); border-color: rgba(255,255,255,.82); box-shadow: 0 18px 50px -32px rgba(45,51,120,.42); }
@@ -886,7 +911,8 @@ html.dark .pg-surface { background: rgba(18, 27, 50, .88); border-color: rgba(90
 
 @media (prefers-reduced-motion: no-preference) {
   .pg-surface {
-    transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -933,3 +959,63 @@ html.dark .pg-surface { background: rgba(18, 27, 50, .88); border-color: rgba(90
 @media (prefers-reduced-motion: reduce) {
   .pg-game-shell::before, .pg-game-shell::after, .pg-live-dot, .pg-orb, .pg-pin-input { animation: none !important; }
 }
+
+/* -------------------------------------------------------------------------- */
+/* ScrollReveal Animation System                                              */
+/* -------------------------------------------------------------------------- */
+.scroll-reveal {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.scroll-reveal-hidden[data-reveal-variant="fade"] {
+  opacity: 0;
+}
+.scroll-reveal-hidden[data-reveal-variant="fade-up"] {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+}
+.scroll-reveal-hidden[data-reveal-variant="fade-down"] {
+  opacity: 0;
+  transform: translate3d(0, -24px, 0);
+}
+.scroll-reveal-hidden[data-reveal-variant="fade-left"] {
+  opacity: 0;
+  transform: translate3d(24px, 0, 0);
+}
+.scroll-reveal-hidden[data-reveal-variant="fade-right"] {
+  opacity: 0;
+  transform: translate3d(-24px, 0, 0);
+}
+.scroll-reveal-hidden[data-reveal-variant="zoom-in"] {
+  opacity: 0;
+  transform: scale(0.95) translate3d(0, 12px, 0);
+}
+.scroll-reveal-hidden[data-reveal-variant="subtle-slide"] {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+}
+
+.scroll-reveal-visible {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .scroll-reveal-hidden,
+  .scroll-reveal-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+body.motion-low .scroll-reveal,
+body.motion-low .scroll-reveal-hidden,
+body.motion-low .scroll-reveal-visible {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
