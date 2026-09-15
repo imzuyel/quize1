@@ -10,6 +10,7 @@ import {
   SectionTitle,
   Skeleton,
   StatCard,
+  cx,
 } from "@/components/ui";
 import {
   QuizResultFeedbackCard,
@@ -39,6 +40,7 @@ const LEVELS = [
 
 export default function StudentDashboard() {
   const [data, setData] = useState<Data | null>(null);
+  const [animateGrid, setAnimateGrid] = useState(false);
   const [quizzes, setQuizzes] = useState<{ id: number; title: string; mode: string }[]>([]);
   const [pinInput, setPinInput] = useState("");
   const [recentQuiz, setRecentQuiz] = useState<CompletedQuizInfo | null>(null);
@@ -139,12 +141,27 @@ export default function StudentDashboard() {
 
       {/* Student Hero */}
       <div className="pg-hero-bg pg-shadow relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white border border-indigo-500/30">
-        <div className="pg-grid-lines absolute inset-0 opacity-40" />
+        <div className={cx("pg-grid-lines absolute inset-0 opacity-40 transition-all", animateGrid && "pg-grid-animated")} />
         <div className="relative flex flex-wrap items-center justify-between gap-6">
           <div className="max-w-xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 px-3 py-1 text-xs font-bold text-teal-300">
-              🎓 শিক্ষার্থী ড্যাশবোর্ড
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 px-3 py-1 text-xs font-bold text-teal-300">
+                🎓 শিক্ষার্থী ড্যাশবোর্ড
+              </span>
+              <button
+                type="button"
+                onClick={() => setAnimateGrid((v) => !v)}
+                className={cx(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all border cursor-pointer",
+                  animateGrid
+                    ? "bg-teal-400 text-slate-950 border-teal-300 shadow-sm shadow-teal-400/50"
+                    : "bg-white/10 text-white/80 hover:bg-white/20 border-white/20"
+                )}
+                title="ব্যাকগ্রাউন্ড গ্রিড অ্যানিমেশন চালু/বন্ধ করুন"
+              >
+                ✨ {animateGrid ? "Animate: ON" : "Animate"}
+              </button>
+            </div>
             <h1 className="mt-2 text-2xl sm:text-3xl font-black">স্বাগতম! আজ কী শিখবেন?</h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-300">
               লাইভ ক্লাসরুম কুইজে যোগ দিন, বিষয়ভিত্তিক অনুশীলন করুন এবং লিডারবোর্ডে নিজের অবস্থান উন্নত করুন।

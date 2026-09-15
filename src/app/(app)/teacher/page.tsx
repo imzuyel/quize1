@@ -16,6 +16,7 @@ import {
   StatCard,
   Table,
   useToast,
+  cx,
 } from "@/components/ui";
 
 type Analytics = {
@@ -48,6 +49,7 @@ export default function TeacherDashboard() {
   const router = useRouter();
   const { push } = useToast();
   const [data, setData] = useState<Analytics | null>(null);
+  const [animateGrid, setAnimateGrid] = useState(false);
   const [smartOpen, setSmartOpen] = useState(false);
   const [prompt, setPrompt] = useState("ক্লাস ১০ কম্পিউটার, HTML ফর্ম, মাঝারি, ৩০ প্রশ্ন");
   const [plan, setPlan] = useState<Record<string, unknown> | null>(null);
@@ -135,10 +137,10 @@ export default function TeacherDashboard() {
     <div className="space-y-6">
       {/* Enhanced Hero Banner with Live Engine Pulse */}
       <div className="pg-hero-bg pg-shadow relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white border border-teal-500/30">
-        <div className="pg-grid-lines absolute inset-0 opacity-40" />
+        <div className={cx("pg-grid-lines absolute inset-0 opacity-40 transition-all", animateGrid && "pg-grid-animated")} />
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/20 border border-teal-400/40 px-3 py-1 text-xs font-bold text-teal-300">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
@@ -147,6 +149,19 @@ export default function TeacherDashboard() {
                 লাইভ ক্লাসরুম ইঞ্জিন সক্রিয়
               </span>
               <span className="text-xs text-white/60">• পঞ্চগড় সরকারি কারিগরি স্কুল ও কলেজ</span>
+              <button
+                type="button"
+                onClick={() => setAnimateGrid((v) => !v)}
+                className={cx(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all border cursor-pointer",
+                  animateGrid
+                    ? "bg-teal-400 text-slate-950 border-teal-300 shadow-sm shadow-teal-400/50"
+                    : "bg-white/10 text-white/80 hover:bg-white/20 border-white/20"
+                )}
+                title="ব্যাকগ্রাউন্ড গ্রিড অ্যানিমেশন চালু/বন্ধ করুন"
+              >
+                ✨ {animateGrid ? "Animate: ON" : "Animate"}
+              </button>
             </div>
 
             <h1 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight">

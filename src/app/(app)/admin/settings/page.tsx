@@ -4,9 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_FEATURES, FEATURE_LABELS, mergeFeatures, type FeatureFlags } from "@/lib/prefs";
 import { DEFAULT_SEO, mergeSeo, type SeoSettings } from "@/lib/seo-config";
 import { DEFAULT_HERO_SETTINGS, mergeHeroSettings, type HeroSettings } from "@/lib/frontend-config";
-import { DEFAULT_ANIMATION_SETTINGS, mergeAnimationSettings, type AnimationSettings } from "@/lib/animation-config";
-import { useAnimationConfig } from "@/components/animation-provider";
-import { Progress } from "@/components/ui";
 import {
   Badge,
   Button,
@@ -40,7 +37,7 @@ type Branding = {
 type Achievement = { id: number; name: string; nameBn: string | null; description: string | null; icon: string; xp: number; active: boolean };
 type SocialSettings = { facebook: string; youtube: string; instagram: string; linkedin: string; github: string; twitter: string; website: string };
 type InstitutionSettings = { name: string; nameEn: string; code: string; eiin: string; address: string; phone: string; email: string; website: string; principal: string };
-type AppearanceSettings = { theme: "system" | "light" | "dark"; primary: string; accent: string; font: string; bnFont: string; radius: "soft" | "round" | "pill"; animation: "low" | "medium" | "high" };
+type AppearanceSettings = { theme: "system" | "light" | "dark"; primary: string; accent: string; font: string; bnFont: string; radius: "soft" | "round" | "pill"; animation: "low" | "medium" | "high"; highContrast?: boolean };
 type QuizDefaults = { questionTime: number; points: number; leaderboard: boolean; sound: boolean; music: boolean; randomQuestions: boolean; randomOptions: boolean; lateJoin: boolean; maxParticipants: number; autoNext: boolean };
 type StudentDefaults = { nicknameRequired: boolean; autoNickname: boolean; avatar: boolean; allowRejoin: boolean; showNames: boolean };
 
@@ -72,12 +69,10 @@ export default function AdminSettings() {
   const [seo, setSeo] = useState<SeoSettings>(DEFAULT_SEO);
   const [social, setSocial] = useState<SocialSettings>({ facebook: "", youtube: "", instagram: "", linkedin: "", github: "", twitter: "", website: "" });
   const [institution, setInstitution] = useState<InstitutionSettings>({ name: DEFAULT_BRANDING.schoolName, nameEn: DEFAULT_BRANDING.schoolNameEn, code: "", eiin: "", address: DEFAULT_BRANDING.contact, phone: "", email: DEFAULT_BRANDING.email, website: "", principal: "" });
-  const [appearance, setAppearance] = useState<AppearanceSettings>({ theme: "system", primary: DEFAULT_BRANDING.primary, accent: DEFAULT_BRANDING.accent, font: "Inter", bnFont: "Noto Sans Bengali", radius: "round", animation: "medium" });
+  const [appearance, setAppearance] = useState<AppearanceSettings>({ theme: "system", primary: DEFAULT_BRANDING.primary, accent: DEFAULT_BRANDING.accent, font: "Inter", bnFont: "Noto Sans Bengali", radius: "round", animation: "medium", highContrast: false });
   const [quizDefaults, setQuizDefaults] = useState<QuizDefaults>({ questionTime: 30, points: 1000, leaderboard: true, sound: true, music: true, randomQuestions: false, randomOptions: false, lateJoin: true, maxParticipants: 200, autoNext: false });
   const [studentDefaults, setStudentDefaults] = useState<StudentDefaults>({ nicknameRequired: false, autoNickname: true, avatar: true, allowRejoin: true, showNames: true });
   const [hero, setHero] = useState<HeroSettings>(DEFAULT_HERO_SETTINGS);
-  const [animations, setAnimations] = useState<AnimationSettings>(DEFAULT_ANIMATION_SETTINGS);
-  const { updateSettings: updateLiveAnimationSettings } = useAnimationConfig();
 
   const load = useCallback(async () => {
     const s = await fetch("/api/admin?scope=settings");
@@ -86,11 +81,16 @@ export default function AdminSettings() {
       if (json.branding) setBranding({ ...DEFAULT_BRANDING, ...json.branding });
       if (json.social) setSocial({ facebook: "", youtube: "", instagram: "", linkedin: "", github: "", twitter: "", website: "", ...json.social });
       if (json.institution) setInstitution({ name: DEFAULT_BRANDING.schoolName, nameEn: DEFAULT_BRANDING.schoolNameEn, code: "", eiin: "", address: DEFAULT_BRANDING.contact, phone: "", email: DEFAULT_BRANDING.email, website: "", principal: "", ...json.institution });
-      if (json.appearance) setAppearance({ theme: "system", primary: DEFAULT_BRANDING.primary, accent: DEFAULT_BRANDING.accent, font: "Inter", bnFont: "Noto Sans Bengali", radius: "round", animation: "medium", ...json.appearance });
+      if (json.appearance) {
+        const hc = Boolean(json.appearance.highContrast ?? (typeof window !== "undefined" && localStorage.getItem("pg_hc") === "1"));
+        setAppearance({ theme: "system", primary: DEFAULT_BRANDING.primary, accent: DEFAULT_BRANDING.accent, font: "Inter", bnFont: "Noto Sans Bengali", radius: "round", animation: "medium", highContrast: hc, ...json.appearance });
+        if (typeof document !== "undefined") {
+          document.body.classList.toggle("hc", hc);
+        }
+      }
       if (json.quizDefaults) setQuizDefaults({ questionTime: 30, points: 1000, leaderboard: true, sound: true, music: true, randomQuestions: false, randomOptions: false, lateJoin: true, maxParticipants: 200, autoNext: false, ...json.quizDefaults });
       if (json.studentDefaults) setStudentDefaults({ nicknameRequired: false, autoNickname: true, avatar: true, allowRejoin: true, showNames: true, ...json.studentDefaults });
       if (json.hero) setHero(mergeHeroSettings(json.hero));
-      if (json.animations) setAnimations(mergeAnimationSettings(json.animations));
       setFeatures(mergeFeatures(json.features));
       setSeo(mergeSeo(json.seo, json.branding));
     }
@@ -125,7 +125,6 @@ export default function AdminSettings() {
         tabs={[
           { id: "branding", label: "ব্র্যান্ডিং", icon: "🎨" },
           { id: "hero", label: "হোমপেজ ও হিরো", icon: "🚀" },
-          { id: "animation", label: "এনিমেশন", icon: "⚡" },
           { id: "institution", label: "প্রতিষ্ঠান", icon: "🏫" },
           { id: "social", label: "সোশ্যাল", icon: "🌐" },
           { id: "appearance", label: "অ্যাপিয়ারেন্স", icon: "✨" },
@@ -140,286 +139,6 @@ export default function AdminSettings() {
         active={tab}
         onChange={setTab}
       />
-
-      {tab === "animation" ? (
-        <div className="space-y-4">
-          <Card accent="teal">
-            <SectionTitle
-              title="⚡ প্রিমিয়াম এনিমেশন কন্ট্রোল সিস্টেম (Centralized Animation Settings)"
-              subtitle="কার্ড গ্লো বর্ডার, বাটন ইন্টারঅ্যাকশন, স্ক্রোল রিভিল এবং প্রোগ্রেস বারের গতি ও স্টাইল কন্ট্রোল করুন"
-            />
-
-            {/* 1. Card Glow Border System */}
-            <div className="rounded-2xl border border-teal-500/20 bg-slate-900/40 p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-teal-300">✨ ১. কার্ড গ্লো বর্ডার এনিমেশন (Card Glow Border)</h3>
-                  <p className="text-xs text-slate-400">প্রতিটি কার্ডের চারপাশে স্মুথ মুভিং লাইট ও লাইট বর্ডার ট্রাভেল এনিমেশন</p>
-                </div>
-                <div className="w-36">
-                  <Toggle
-                    checked={animations.cardBorderEnabled}
-                    onChange={(v) => {
-                      const next = { ...animations, cardBorderEnabled: v };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                    label={animations.cardBorderEnabled ? "চালু ✅" : "বন্ধ ❌"}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="গ্লো ইন্টেনসিটি (Glow Intensity)">
-                  <Select
-                    value={animations.cardGlowIntensity}
-                    onChange={(e) => {
-                      const next = { ...animations, cardGlowIntensity: e.target.value as any };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                  >
-                    <option value="subtle">সূক্ষ্ম (Subtle Glow - 20%)</option>
-                    <option value="medium">মাঝারি (Medium Glow - 45% - প্রস্তাবিত)</option>
-                    <option value="strong">তীব্র (Strong Premium Glow - 75%)</option>
-                  </Select>
-                </Field>
-
-                <Field label="এনিমেশন গতি (Border Movement Speed)">
-                  <Select
-                    value={animations.cardBorderSpeed}
-                    onChange={(e) => {
-                      const next = { ...animations, cardBorderSpeed: e.target.value as any };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                  >
-                    <option value="slow">ধীরগতি (Slow - 10 Seconds)</option>
-                    <option value="normal">স্বাভাবিক (Normal - 6 Seconds - প্রস্তাবিত)</option>
-                    <option value="fast">দ্রুত (Fast - 3 Seconds)</option>
-                  </Select>
-                </Field>
-              </div>
-
-              {/* Card Preview Grid */}
-              <div className="mt-4 rounded-xl bg-[#060a1e] p-4">
-                <p className="text-xs font-bold text-slate-400 mb-3">🎨 কার্ড অ্যাকসент গ্লো প্রিভিউ (Live Accent Colors Preview):</p>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Card accent="teal" className="p-3">
-                    <p className="text-xs font-bold text-teal-300">Teal/Cyan Accent</p>
-                    <p className="text-[11px] text-slate-400">Cyan Glow Border</p>
-                  </Card>
-                  <Card accent="purple" className="p-3">
-                    <p className="text-xs font-bold text-purple-300">Purple/Violet Accent</p>
-                    <p className="text-[11px] text-slate-400">Purple Glow Border</p>
-                  </Card>
-                  <Card accent="gold" className="p-3">
-                    <p className="text-xs font-bold text-amber-300">Amber/Gold Accent</p>
-                    <p className="text-[11px] text-slate-400">Warm Gold Glow Border</p>
-                  </Card>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Button Animation System */}
-            <div className="mt-4 rounded-2xl border border-indigo-500/20 bg-slate-900/40 p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-indigo-300">🔘 ২. বাটন ইন্টারঅ্যাকশন এনিমেশন (Button Interaction)</h3>
-                  <p className="text-xs text-slate-400">হোভার প্রেসম্যাপ, লাইট শাইন বিম এবং প্রেস/ট্যাপ রেসপন্সিভ ফিডব্যাক</p>
-                </div>
-                <div className="w-36">
-                  <Toggle
-                    checked={animations.buttonAnimationEnabled}
-                    onChange={(v) => {
-                      const next = { ...animations, buttonAnimationEnabled: v };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                    label={animations.buttonAnimationEnabled ? "চালু ✅" : "বন্ধ ❌"}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="বাটন গ্লো লেভেল (Glow Level)">
-                  <Select
-                    value={animations.buttonGlowIntensity}
-                    onChange={(e) => {
-                      const next = { ...animations, buttonGlowIntensity: e.target.value as any };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                  >
-                    <option value="subtle">সূক্ষ্ম (Subtle)</option>
-                    <option value="medium">মাঝারি (Medium)</option>
-                    <option value="strong">উজ্জ্বল (Strong)</option>
-                  </Select>
-                </Field>
-
-                <div className="pt-6">
-                  <Toggle
-                    checked={animations.buttonHoverEffect}
-                    onChange={(v) => {
-                      const next = { ...animations, buttonHoverEffect: v };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                    label="হোভার বিম শাইন এফেক্ট (Hover Shine Beam)"
-                  />
-                </div>
-              </div>
-
-              {/* Button Preview */}
-              <div className="mt-2 rounded-xl bg-[#060a1e] p-4 flex flex-wrap items-center gap-3">
-                <p className="text-xs font-bold text-slate-400 w-full mb-1">🔘 লাইভ বাটন প্রিভিউ (Button Animation Live Preview):</p>
-                <Button variant="primary" size="sm">Primary Button</Button>
-                <Button variant="secondary" size="sm">Secondary Button</Button>
-                <Button variant="gold" size="sm">Gold Button</Button>
-                <Button variant="outline" size="sm">Outline Button</Button>
-              </div>
-            </div>
-
-            {/* 3. Scroll / AOS Reveal System */}
-            <div className="mt-4 rounded-2xl border border-sky-500/20 bg-slate-900/40 p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-sky-300">📜 ৩. পেজ স্ক্রোল রিভিল এনিমেশন (Scroll Reveal / AOS)</h3>
-                  <p className="text-xs text-slate-400">পেজে স্ক্রোল করার সময় কনটেন্ট ও কার্ডসমূহের মসৃণ আত্মপ্রকাশ</p>
-                </div>
-                <div className="w-36">
-                  <Toggle
-                    checked={animations.scrollAnimationEnabled}
-                    onChange={(v) => {
-                      const next = { ...animations, scrollAnimationEnabled: v };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                    label={animations.scrollAnimationEnabled ? "চালু ✅" : "বন্ধ ❌"}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="রিভিল এনিমেশন টাইপ (Default Animation Type)">
-                  <Select
-                    value={animations.scrollAnimationType}
-                    onChange={(e) => {
-                      const next = { ...animations, scrollAnimationType: e.target.value as any };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                  >
-                    <option value="fade-up">Fade Up (নিচ থেকে উপরে)</option>
-                    <option value="fade-down">Fade Down (উপর থেকে নিচে)</option>
-                    <option value="fade-left">Fade Left (ডান থেকে বামে)</option>
-                    <option value="fade-right">Fade Right (বাম থেকে ডানে)</option>
-                    <option value="zoom-in">Zoom In (জুম ইন)</option>
-                    <option value="slide-up">Slide Up (মসৃণ স্লাইড)</option>
-                  </Select>
-                </Field>
-
-                <Field label="এনিমেশন ডিউরেশন (Duration in ms)">
-                  <Input
-                    type="number"
-                    min={100}
-                    max={2000}
-                    step={50}
-                    value={animations.scrollAnimationDuration}
-                    onChange={(e) => {
-                      const next = { ...animations, scrollAnimationDuration: Number(e.target.value) || 500 };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                  />
-                </Field>
-
-                <Field label="গ্রিড কার্ডস সিকোয়েন্স ডিলে (Stagger Delay ms)">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={500}
-                    step={10}
-                    value={animations.scrollAnimationStagger}
-                    onChange={(e) => {
-                      const next = { ...animations, scrollAnimationStagger: Number(e.target.value) || 80 };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                  />
-                </Field>
-              </div>
-            </div>
-
-            {/* 4. Progress Bar Animation System */}
-            <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-slate-900/40 p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-700/50 pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-emerald-300">📊 ৪. প্রোগ্রেস বার এনিমেশন (Animated Progress Bar)</h3>
-                  <p className="text-xs text-slate-400">পার্সেন্টেজ ফিল, শাইনিং স্ট্রিম ওভারলে এবং স্মুথ ফিলিং এনিমেশন</p>
-                </div>
-                <div className="w-36">
-                  <Toggle
-                    checked={animations.progressAnimationEnabled}
-                    onChange={(v) => {
-                      const next = { ...animations, progressAnimationEnabled: v };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                    label={animations.progressAnimationEnabled ? "চালু ✅" : "বন্ধ ❌"}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="প্রোগ্রেস ফিল ডিউরেশন (Fill Duration ms)">
-                  <Input
-                    type="number"
-                    min={200}
-                    max={3000}
-                    step={100}
-                    value={animations.progressAnimationDuration}
-                    onChange={(e) => {
-                      const next = { ...animations, progressAnimationDuration: Number(e.target.value) || 800 };
-                      setAnimations(next);
-                      updateLiveAnimationSettings(next);
-                    }}
-                  />
-                </Field>
-              </div>
-
-              {/* Progress Bar Live Preview */}
-              <div className="mt-2 rounded-xl bg-[#060a1e] p-4 space-y-3">
-                <p className="text-xs font-bold text-slate-400">📊 লাইভ প্রোগ্রেস বার প্রিভিউ (Progress Bar Live Preview):</p>
-                <Progress value={75} tone="teal" showLabel label="কুইজ প্রোগ্রেস (Teal Tone)" />
-                <Progress value={90} tone="gold" showLabel label="লেভেল এক্সপি (Gold Tone)" />
-                <Progress value={60} tone="purple" showLabel label="স্কিল পারফরম্যান্স (Purple Tone)" />
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button
-                onClick={async () => {
-                  const d = await post({ op: "saveSettings", key: "animations", value: animations });
-                  if (d) push("প্রিমিয়াম এনিমেশন কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে ✅", "success");
-                }}
-              >
-                💾 এনিমেশন সেটিংস সংরক্ষণ করুন
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setAnimations(DEFAULT_ANIMATION_SETTINGS);
-                  updateLiveAnimationSettings(DEFAULT_ANIMATION_SETTINGS);
-                }}
-              >
-                ডিফল্ট সেটিংস রিসেট করুন
-              </Button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
 
       {tab === "hero" ? (
         <div className="space-y-4">
@@ -598,6 +317,34 @@ export default function AdminSettings() {
             <Field label="English Font"><Input value={appearance.font} onChange={(e) => setAppearance({ ...appearance, font: e.target.value })} /></Field>
             <Field label="বাংলা Font"><Input value={appearance.bnFont} onChange={(e) => setAppearance({ ...appearance, bnFont: e.target.value })} /></Field>
             <Field label="Corner Style"><Select value={appearance.radius} onChange={(e) => setAppearance({ ...appearance, radius: e.target.value as AppearanceSettings["radius"] })}><option value="soft">Soft</option><option value="round">Round</option><option value="pill">Pill</option></Select></Field>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-teal-500/40 bg-slate-900/80 p-4 sm:p-5 backdrop-blur">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-black text-white text-base flex items-center gap-2">
+                  ⚡ হাই কনট্রাস্ট মোড (High Contrast Accessibility)
+                </p>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
+                  কারিগরি প্রতিষ্ঠাতা ও পরিচিতি সেকশনসহ পুরো ওয়েবসাইটের টেক্সট রিডিবিলিটি, লেবেল স্পেস ও ব্যাকগ্রাউন্ড কনট্রাস্ট সর্বোচ্চ স্তরে উন্নীত করতে হাই-কনট্রাস্ট ইনেবল করুন (বডিতে <code className="text-amber-300 font-mono">body.hc</code> ক্লাস যুক্ত হবে)।
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Toggle
+                  checked={Boolean(appearance.highContrast)}
+                  onChange={(v) => {
+                    setAppearance({ ...appearance, highContrast: v });
+                    if (typeof document !== "undefined") {
+                      document.body.classList.toggle("hc", v);
+                    }
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("pg_hc", v ? "1" : "0");
+                    }
+                  }}
+                  label="হাই কনট্রাস্ট চালু"
+                />
+              </div>
+            </div>
           </div>
           <Button className="mt-4" onClick={async () => { const d = await post({ op: "saveSettings", key: "appearance", value: appearance }); if (d) push("Appearance সংরক্ষিত ✅", "success"); }}>💾 সংরক্ষণ করুন</Button>
         </Card>

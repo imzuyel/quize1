@@ -233,13 +233,28 @@ export default async function Home({
       ) : null}
 
       {/* 7. Developer & Institutional Credits */}
-      <section className="relative w-full border-t border-slate-800 bg-slate-950 py-16 px-4 sm:px-8 lg:px-14 xl:px-20">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="mb-1 text-center text-xl sm:text-2xl font-black text-white">কারিগরি প্রতিষ্ঠাতা ও পরিচিতি</h2>
-          <p className="mb-8 text-center text-xs sm:text-sm text-slate-400">
-            শিক্ষার্থীদের ভবিষ্যৎ ও কারিগরি শিক্ষার ডিজিটাল রূপান্তরের লক্ষ্যে নির্মিত
-          </p>
-          <DeveloperCard branding={branding} />
+      <section className="relative w-full border-t border-slate-800/80 bg-slate-950 py-16 px-4 sm:px-8 lg:px-14 xl:px-20 overflow-hidden">
+        {/* Subtle Ambient Radial Glow Effect */}
+        <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-b from-teal-500/15 via-emerald-500/10 to-transparent rounded-full blur-3xl opacity-70" />
+        <div className="pointer-events-none absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
+        
+        <div className="relative max-w-4xl mx-auto z-10">
+          <div className="text-center mb-9">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/15 border border-teal-500/30 px-3.5 py-1 text-xs font-extrabold text-teal-300 shadow-[0_0_15px_-3px_rgba(20,184,166,0.4)] backdrop-blur">
+              🏛️ কারিগরি নেতৃত্ব ও প্রতিষ্ঠাতা
+            </span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+              কারিগরি প্রতিষ্ঠাতা ও পরিচিতি
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-300 max-w-xl mx-auto font-medium leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+              শিক্ষার্থীদের উচ্চমানের শিক্ষা ও কারিগরি শিক্ষার ডিজিটাল রূপান্তরের লক্ষ্যে নির্মিত
+            </p>
+          </div>
+          
+          {/* Developer Card with subtle ambient shadow & glow container */}
+          <div className="relative rounded-3xl shadow-[0_20px_50px_-15px_rgba(0,0,0,0.9),0_0_35px_-5px_rgba(20,184,166,0.25)]">
+            <DeveloperCard branding={branding} />
+          </div>
         </div>
       </section>
 

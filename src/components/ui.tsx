@@ -108,8 +108,8 @@ export function SectionTitle({
   return (
     <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
       <div>
-        <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{title}</h2>
-        {subtitle ? <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-0.5">{subtitle}</p> : null}
+        <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">{title}</h2>
+        {subtitle ? <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-0.5">{subtitle}</p> : null}
       </div>
       {action}
     </div>

@@ -18,7 +18,14 @@ import {
   useToast,
   cx,
 } from "@/components/ui";
-import { PUZZLE_TYPES, QUESTION_TYPES } from "@/lib/ai";
+import {
+  PUZZLE_TYPES,
+  QUESTION_TYPES,
+  type PdfSectionSuggestion,
+  type PdfTocAnalysis,
+  type PdfTocChapter,
+  type PdfTocSubSection,
+} from "@/lib/ai";
 import { PASTE_EXAMPLE, PASTE_EXAMPLE_CSV, parseQuestions } from "@/lib/parse-questions";
 
 type GenQuestion = {
@@ -89,6 +96,266 @@ function AIPageInner() {
   const [pageFrom, setPageFrom] = useState(1);
   const [pageTo, setPageTo] = useState(1);
   const [chapterLabel, setChapterLabel] = useState("");
+
+  // pdf section suggestions
+  const [sectionSuggestions, setSectionSuggestions] = useState<PdfSectionSuggestion[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const [selectedSecQuestionKeys, setSelectedSecQuestionKeys] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  // pdf table of contents (TOC) & sub-section analysis
+  const [tocAnalysis, setTocAnalysis] = useState<PdfTocAnalysis | null>(null);
+  const [analyzingToc, setAnalyzingToc] = useState(false);
+  const [selectedSubSectionIds, setSelectedSubSectionIds] = useState<Set<string>>(new Set());
+  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
+
+  const fetchTocAnalysis = async () => {
+    if (!doc) return push("একটি PDF নির্বাচন করুন", "error");
+    setAnalyzingToc(true);
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "analyzePdfToc",
+          documentId: doc.documentId,
+          language,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      const analysis: PdfTocAnalysis = data.analysis;
+      setTocAnalysis(analysis);
+
+      const subIds = new Set<string>();
+      const expChaps: Record<string, boolean> = {};
+      analysis.chapters.forEach((ch) => {
+        expChaps[ch.chapterId] = true;
+        ch.subSections.forEach((sub) => {
+          subIds.add(sub.subId);
+        });
+      });
+      setSelectedSubSectionIds(subIds);
+      setExpandedChapters(expChaps);
+
+      push(`PDF সূচিপত্র ও সাব-সেকশন সফলভাবে বিশ্লেষণ করা হয়েছে! ✅`, "success");
+    } catch (err) {
+      push(err instanceof Error ? err.message : "সূচিপত্র বিশ্লেষণ ব্যর্থ", "error");
+    } finally {
+      setAnalyzingToc(false);
+    }
+  };
+
+  const toggleSubSectionId = (subId: string) => {
+    setSelectedSubSectionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(subId)) next.delete(subId);
+      else next.add(subId);
+      return next;
+    });
+  };
+
+  const toggleChapterSubSections = (ch: PdfTocChapter) => {
+    setSelectedSubSectionIds((prev) => {
+      const next = new Set(prev);
+      const subIds = ch.subSections.map((s) => s.subId);
+      const allSelected = subIds.every((id) => next.has(id));
+
+      if (allSelected) {
+        subIds.forEach((id) => next.delete(id));
+      } else {
+        subIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const selectAllTocSubSections = () => {
+    if (!tocAnalysis) return;
+    const subIds = new Set<string>();
+    tocAnalysis.chapters.forEach((ch) => {
+      ch.subSections.forEach((sub) => subIds.add(sub.subId));
+    });
+    setSelectedSubSectionIds(subIds);
+  };
+
+  const deselectAllTocSubSections = () => {
+    setSelectedSubSectionIds(new Set());
+  };
+
+  const generateFromSelectedSubSections = async () => {
+    if (!tocAnalysis || !selectedSubSectionIds.size) {
+      return push("কমপক্ষে একটি সাব-সেকশন নির্বাচন করুন", "error");
+    }
+
+    let minP = tocAnalysis.totalPages;
+    let maxP = 1;
+    const selectedTopicsList: string[] = [];
+    const subSectionTitles: string[] = [];
+
+    tocAnalysis.chapters.forEach((ch) => {
+      ch.subSections.forEach((sub) => {
+        if (selectedSubSectionIds.has(sub.subId)) {
+          minP = Math.min(minP, sub.pageFrom);
+          maxP = Math.max(maxP, sub.pageTo);
+          subSectionTitles.push(sub.title);
+          if (sub.suggestedTopics) {
+            selectedTopicsList.push(...sub.suggestedTopics);
+          }
+        }
+      });
+    });
+
+    if (minP <= maxP) {
+      setPageFrom(minP);
+      setPageTo(maxP);
+    }
+
+    const uniqueTopics = Array.from(new Set(selectedTopicsList));
+    if (uniqueTopics.length) {
+      setTopic(uniqueTopics.slice(0, 5).join(", "));
+    }
+    if (subSectionTitles.length) {
+      setChapterLabel(subSectionTitles[0]);
+    }
+
+    push(`নির্বাচিত সাব-সেকশনগুলো থেকে প্রশ্ন প্রস্তাবনা তৈরি করা হচ্ছে...`, "info");
+    await fetchSectionSuggestions();
+  };
+
+  const fetchSectionSuggestions = async () => {
+    if (!doc) return push("একটি PDF নির্বাচন করুন", "error");
+    setSuggesting(true);
+    setSectionSuggestions([]);
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "suggestDocSections",
+          documentId: doc.documentId,
+          pageFrom,
+          pageTo,
+          language,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      const suggestions: PdfSectionSuggestion[] = data.suggestions ?? [];
+      setSectionSuggestions(suggestions);
+
+      const allKeys = new Set<string>();
+      const initialExpanded: Record<string, boolean> = {};
+      suggestions.forEach((sec) => {
+        initialExpanded[sec.id] = true;
+        sec.questions.forEach((_, qIdx) => {
+          allKeys.add(`${sec.id}_${qIdx}`);
+        });
+      });
+      setSelectedSecQuestionKeys(allKeys);
+      setExpandedSections(initialExpanded);
+
+      push(`${suggestions.length}টি সেকশন এবং প্রস্তাবিত প্রশ্ন প্রস্তুত ✅`, "success");
+    } catch (err) {
+      push(err instanceof Error ? err.message : "সেকশন তৈরি ব্যর্থ", "error");
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  const toggleSectionQuestions = (secId: string, questionsCount: number) => {
+    setSelectedSecQuestionKeys((prev) => {
+      const next = new Set(prev);
+      const secKeys = Array.from({ length: questionsCount }, (_, i) => `${secId}_${i}`);
+      const allSecSelected = secKeys.every((k) => next.has(k));
+
+      if (allSecSelected) {
+        secKeys.forEach((k) => next.delete(k));
+      } else {
+        secKeys.forEach((k) => next.add(k));
+      }
+      return next;
+    });
+  };
+
+  const toggleQuestionKey = (key: string) => {
+    setSelectedSecQuestionKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const selectAllSecQuestions = () => {
+    const allKeys = new Set<string>();
+    sectionSuggestions.forEach((sec) => {
+      sec.questions.forEach((_, qIdx) => {
+        allKeys.add(`${sec.id}_${qIdx}`);
+      });
+    });
+    setSelectedSecQuestionKeys(allKeys);
+  };
+
+  const deselectAllSecQuestions = () => {
+    setSelectedSecQuestionKeys(new Set());
+  };
+
+  const importSelectedSuggestions = async () => {
+    const selectedQuestions: GenQuestion[] = [];
+    sectionSuggestions.forEach((sec) => {
+      sec.questions.forEach((q, qIdx) => {
+        const key = `${sec.id}_${qIdx}`;
+        if (selectedSecQuestionKeys.has(key)) {
+          selectedQuestions.push(q as unknown as GenQuestion);
+        }
+      });
+    });
+
+    if (!selectedQuestions.length) {
+      return push("কমপক্ষে একটি প্রস্তাবিত প্রশ্ন নির্বাচন করুন", "error");
+    }
+
+    setBusy(true);
+    try {
+      const formattedLines = selectedQuestions
+        .map((q, i) => {
+          let text = `${i + 1}. ${q.text}\n`;
+          if (q.options && q.options.length) {
+            q.options.forEach((opt, oi) => {
+              const isCorrect = Array.isArray(q.correct) && (q.correct.includes(oi) || q.correct.includes(opt));
+              text += `${isCorrect ? "*" : ""}${String.fromCharCode(65 + oi)}) ${opt}\n`;
+            });
+          } else if (q.correct && q.correct.length) {
+            text += `Answer: ${q.correct.join(", ")}\n`;
+          }
+          if (q.explanation) text += `Explanation: ${q.explanation}\n`;
+          if (q.hint) text += `Hint: ${q.hint}\n`;
+          return text;
+        })
+        .join("\n");
+
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "importPasted",
+          text: formattedLines,
+          defaults: { difficulty, marks, timer, language },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setJobId(data.jobId);
+      setSelected([]);
+      setTab("review");
+      push(`${selectedQuestions.length}টি প্রস্তাবিত প্রশ্ন সফলভাবে রিভিউতে যোগ হয়েছে ✅`, "success");
+    } catch (err) {
+      push(err instanceof Error ? err.message : "আমদানি ব্যর্থ", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // job / review
   const [jobId, setJobId] = useState<number | null>(null);
@@ -409,24 +676,30 @@ function AIPageInner() {
         subtitle="বিষয় লিখে এআই দিয়ে, তৈরি প্রশ্ন পেস্ট করে, অথবা PDF/বই থেকে"
       />
 
-      <Card className="overflow-hidden border-0 bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 text-white">
+      <Card className="overflow-hidden border border-teal-500/30 bg-slate-950 text-white p-6 shadow-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-300">PGTSC AI QUIZ STUDIO</p>
-            <h2 className="mt-1 text-xl font-black sm:text-2xl">কয়েক মিনিটে classroom-ready quiz</h2>
-            <p className="mt-1 max-w-2xl text-sm text-white/70">টপিক, নিজের নোট বা বই দিন। AI draft বানাবে; আপনি review করে পছন্দের প্রশ্ন নিয়ে সরাসরি live quiz চালাতে পারবেন।</p>
+            <span className="inline-block rounded-lg bg-teal-500/20 px-2.5 py-1 text-xs font-black uppercase tracking-[0.18em] text-teal-300 border border-teal-400/40">
+              PGTSC AI QUIZ STUDIO
+            </span>
+            <h2 className="mt-2 text-xl font-black text-white sm:text-2xl drop-shadow-md">
+              কয়েক মিনিটে classroom-ready quiz
+            </h2>
+            <p className="mt-1.5 max-w-2xl text-sm font-medium text-slate-200 leading-relaxed">
+              টপিক, নিজের নোট বা বই দিন। AI draft বানাবে; আপনি review করে পছন্দের প্রশ্ন নিয়ে সরাসরি live quiz চালাতে পারবেন।
+            </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="rounded-xl bg-white/10 p-3"><b className="block text-lg">1</b>Generate</div>
-            <div className="rounded-xl bg-white/10 p-3"><b className="block text-lg">2</b>Review</div>
-            <div className="rounded-xl bg-white/10 p-3"><b className="block text-lg">3</b>Go Live</div>
+            <div className="rounded-xl border border-white/10 bg-white/10 p-3 text-white font-bold"><b className="block text-lg text-teal-300">1</b>Generate</div>
+            <div className="rounded-xl border border-white/10 bg-white/10 p-3 text-white font-bold"><b className="block text-lg text-amber-300">2</b>Review</div>
+            <div className="rounded-xl border border-white/10 bg-white/10 p-3 text-white font-bold"><b className="block text-lg text-emerald-300">3</b>Go Live</div>
           </div>
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
           {presets.map((p) => (
-            <button key={p.name} onClick={() => applyPreset(p)} className="rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:bg-white/10">
-              <span className="text-xl">{p.icon}</span> <span className="font-bold">{p.name}</span>
-              <span className="mt-1 block text-xs text-white/60">{p.desc}</span>
+            <button key={p.name} onClick={() => applyPreset(p)} className="rounded-xl border border-teal-500/20 bg-slate-900/90 p-3.5 text-left transition hover:border-teal-400 hover:bg-slate-800">
+              <span className="text-xl">{p.icon}</span> <span className="font-bold text-white">{p.name}</span>
+              <span className="mt-1 block text-xs font-medium text-slate-300">{p.desc}</span>
             </button>
           ))}
         </div>
@@ -723,6 +996,394 @@ function AIPageInner() {
                   </details>
                 ) : null}
               </Card>
+
+              {/* TOC & Sub-section Analysis Card */}
+              <Card className="border-2 border-indigo-500/30 bg-gradient-to-r from-indigo-900/10 via-slate-900/5 to-blue-900/10 p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-500/20">
+                      📚 AI Table of Contents & Sub-section Analyzer
+                    </span>
+                    <h3 className="mt-1.5 text-base font-bold text-slate-900">
+                      PDF সূচিপত্র ও সাব-সেকশন বিশ্লেষণ
+                    </h3>
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      AI পুরো PDF এর সূচিপত্র এবং স্ট্রাকচার স্ক্যান করে অধ্যায়, সাব-সেকশন ও প্রাসঙ্গিক টপিক সাজেস্ট করবে।
+                    </p>
+                  </div>
+                  <Button
+                    size="md"
+                    loading={analyzingToc}
+                    onClick={fetchTocAnalysis}
+                    className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-bold shadow-md hover:from-indigo-700 hover:to-blue-700"
+                  >
+                    🔍 সূচিপত্র ও সাব-সেকশন বিশ্লেষণ করুন
+                  </Button>
+                </div>
+              </Card>
+
+              {tocAnalysis ? (
+                <Card className="space-y-4 border-2 border-indigo-500/40 bg-slate-50 p-5 shadow-lg">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <span>📚 সূচিপত্র কাঠামো ও সাব-সেকশন টপিকস</span>
+                        <Badge tone="blue">{tocAnalysis.chapters.length}টি অধ্যায়</Badge>
+                      </h3>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        কুইজের প্রশ্ন তৈরির জন্য নির্দিষ্ট সাব-সেকশন ও টপিক নির্বাচন করুন
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={selectAllTocSubSections}>
+                        সব সাব-সেকশন নির্বাচন
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={deselectAllTocSubSections}>
+                        সব বাতিল
+                      </Button>
+                      <Badge tone="blue" className="font-bold text-xs">
+                        {selectedSubSectionIds.size}টি সাব-সেকশন নির্বাচিত
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                    {tocAnalysis.chapters.map((ch) => {
+                      const chSubIds = ch.subSections.map((s) => s.subId);
+                      const selSubCount = chSubIds.filter((id) => selectedSubSectionIds.has(id)).length;
+                      const allChSelected = selSubCount === ch.subSections.length && ch.subSections.length > 0;
+                      const isExpanded = expandedChapters[ch.chapterId] ?? true;
+
+                      return (
+                        <div
+                          key={ch.chapterId}
+                          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-300"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1">
+                              <input
+                                type="checkbox"
+                                checked={allChSelected}
+                                onChange={() => toggleChapterSubSections(ch)}
+                                className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                              <div className="flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h4 className="font-bold text-slate-900 text-sm">{ch.title}</h4>
+                                  <Badge tone="blue" className="text-[11px]">
+                                    পেজ {ch.pageFrom}-{ch.pageTo}
+                                  </Badge>
+                                  <Badge tone={selSubCount > 0 ? "teal" : "slate"} className="text-[11px]">
+                                    {selSubCount}/{ch.subSections.length}টি সাব-সেকশন নির্বাচিত
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setExpandedChapters((prev) => ({ ...prev, [ch.chapterId]: !isExpanded }))
+                              }
+                            >
+                              {isExpanded ? "আড়াল করুন ▲" : "দেখুন ▼"}
+                            </Button>
+                          </div>
+
+                          {isExpanded ? (
+                            <div className="mt-3 pl-7 space-y-2 border-t border-slate-100 pt-3">
+                              {ch.subSections.map((sub) => {
+                                const isChecked = selectedSubSectionIds.has(sub.subId);
+
+                                return (
+                                  <div
+                                    key={sub.subId}
+                                    className={cx(
+                                      "rounded-lg border p-3 text-xs transition",
+                                      isChecked
+                                        ? "border-indigo-300 bg-indigo-50/40"
+                                        : "border-slate-200 bg-slate-50/50 opacity-70"
+                                    )}
+                                  >
+                                    <div className="flex items-start gap-2.5">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggleSubSectionId(sub.subId)}
+                                        className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 cursor-pointer"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="flex flex-wrap items-center gap-2 font-bold text-slate-900">
+                                          <span>{sub.title}</span>
+                                          <Badge tone="info" className="text-[10px]">
+                                            পেজ {sub.pageFrom}-{sub.pageTo}
+                                          </Badge>
+                                        </div>
+
+                                        {sub.summary ? (
+                                          <p className="mt-1 text-[11px] text-slate-600 bg-white p-1.5 rounded border border-slate-100">
+                                            💡 {sub.summary}
+                                          </p>
+                                        ) : null}
+
+                                        {sub.suggestedTopics?.length ? (
+                                          <div className="mt-2 flex flex-wrap items-center gap-1">
+                                            <span className="text-[10px] font-bold text-slate-500 mr-1">
+                                              প্রস্তাবিত টপিকস:
+                                            </span>
+                                            {sub.suggestedTopics.map((top, tIdx) => (
+                                              <span
+                                                key={tIdx}
+                                                className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-800 border border-indigo-200"
+                                              >
+                                                #{top}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        ) : null}
+
+                                        {sub.recommendedQuestionTypes?.length ? (
+                                          <div className="mt-1 flex flex-wrap gap-1">
+                                            {sub.recommendedQuestionTypes.map((qType, qIdx) => (
+                                              <span
+                                                key={qIdx}
+                                                className="rounded bg-slate-200/80 px-1.5 py-0.5 text-[9px] font-medium text-slate-700 uppercase"
+                                              >
+                                                {qType}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200 pt-3">
+                    <p className="text-xs font-semibold text-indigo-900">
+                      মোট {selectedSubSectionIds.size}টি সাব-সেকশন কুইজ তৈরির জন্য নির্বাচিত
+                    </p>
+                    <Button
+                      size="md"
+                      loading={suggesting}
+                      disabled={selectedSubSectionIds.size === 0}
+                      onClick={generateFromSelectedSubSections}
+                      className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold shadow"
+                    >
+                      🎯 নির্বাচিত সাব-সেকশন থেকে কুইজ প্রশ্ন তৈরি করুন
+                    </Button>
+                  </div>
+                </Card>
+              ) : null}
+
+              <Card className="border-2 border-teal-500/30 bg-gradient-to-r from-teal-900/10 via-slate-900/5 to-emerald-900/10 p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/10 px-2.5 py-0.5 text-xs font-bold text-teal-700 border border-teal-500/20">
+                      🤖 AI Smart Page & Section Suggestions
+                    </span>
+                    <h3 className="mt-1.5 text-base font-bold text-slate-900">
+                      পেজ {pageFrom}-{pageTo} এর সেকশন ও প্রশ্ন প্রস্তাবনা
+                    </h3>
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      AI স্বয়ংক্রিয়ভাবে নির্বাচিত পেজগুলোর বিষয়বস্তু ভাগ করে সেকশনভিত্তিক প্রশ্ন ও উত্তর সাজেস্ট করবে।
+                    </p>
+                  </div>
+                  <Button
+                    size="md"
+                    loading={suggesting}
+                    onClick={fetchSectionSuggestions}
+                    className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold shadow-md hover:from-teal-700 hover:to-emerald-700"
+                  >
+                    ✨ সেকশন ও প্রশ্ন সাজেস্ট করুন
+                  </Button>
+                </div>
+              </Card>
+
+              {sectionSuggestions.length > 0 ? (
+                <Card className="space-y-4 border-2 border-teal-500/40 bg-slate-50 p-5 shadow-lg">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-3">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <span>🤖 AI প্রস্তাবিত পেজ-ভিত্তিক সেকশন ও প্রশ্নসমূহ</span>
+                        <Badge tone="teal">{sectionSuggestions.length}টি সেকশন</Badge>
+                      </h3>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        আপনার কুইজের জন্য প্রাসঙ্গিক সেকশন ও প্রশ্নগুলোর টিকচিহ্ন দিয়ে নির্বাচন করুন
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={selectAllSecQuestions}>
+                        সব নির্বাচন
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={deselectAllSecQuestions}>
+                        সব বাতিল
+                      </Button>
+                      <Badge tone="green" className="font-bold text-xs">
+                        {selectedSecQuestionKeys.size}টি প্রশ্ন বেছে নেওয়া হয়েছে
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+                    {sectionSuggestions.map((sec) => {
+                      const secKeys = sec.questions.map((_, i) => `${sec.id}_${i}`);
+                      const selectedCount = secKeys.filter((k) => selectedSecQuestionKeys.has(k)).length;
+                      const allSecSelected = selectedCount === sec.questions.length && sec.questions.length > 0;
+                      const isExpanded = expandedSections[sec.id] ?? true;
+
+                      return (
+                        <div
+                          key={sec.id}
+                          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-teal-300"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1">
+                              <input
+                                type="checkbox"
+                                checked={allSecSelected}
+                                onChange={() => toggleSectionQuestions(sec.id, sec.questions.length)}
+                                className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                              />
+                              <div className="flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h4 className="font-bold text-slate-900 text-sm">{sec.title}</h4>
+                                  <Badge tone="blue" className="text-[11px]">
+                                    পেজ {sec.pageFrom}-{sec.pageTo}
+                                  </Badge>
+                                  <Badge tone={selectedCount > 0 ? "teal" : "slate"} className="text-[11px]">
+                                    {selectedCount}/{sec.questions.length}টি প্রশ্ন নির্বাচিত
+                                  </Badge>
+                                </div>
+                                {sec.summary ? (
+                                  <p className="mt-1 text-xs text-slate-600 leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                    💡 {sec.summary}
+                                  </p>
+                                ) : null}
+                                {sec.keyTopics?.length ? (
+                                  <div className="mt-1.5 flex flex-wrap gap-1">
+                                    {sec.keyTopics.map((t, idx) => (
+                                      <span key={idx} className="rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700 border border-teal-100">
+                                        #{t}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setExpandedSections((prev) => ({ ...prev, [sec.id]: !isExpanded }))
+                              }
+                            >
+                              {isExpanded ? "আড়াল করুন ▲" : "দেখুন ▼"}
+                            </Button>
+                          </div>
+
+                          {isExpanded ? (
+                            <div className="mt-3 pl-7 space-y-2.5 border-t border-slate-100 pt-3">
+                              {sec.questions.map((q, qIdx) => {
+                                const qKey = `${sec.id}_${qIdx}`;
+                                const isChecked = selectedSecQuestionKeys.has(qKey);
+
+                                return (
+                                  <div
+                                    key={qIdx}
+                                    className={cx(
+                                      "rounded-lg border p-3 text-xs transition",
+                                      isChecked
+                                        ? "border-teal-300 bg-teal-50/40"
+                                        : "border-slate-200 bg-slate-50/50 opacity-70"
+                                    )}
+                                  >
+                                    <div className="flex items-start gap-2.5">
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggleQuestionKey(qKey)}
+                                        className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-teal-600 cursor-pointer"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="flex flex-wrap items-center gap-1.5 font-bold text-slate-900">
+                                          <span>{qIdx + 1}. {q.text}</span>
+                                          <Badge tone="teal" className="text-[10px] uppercase">
+                                            {q.type}
+                                          </Badge>
+                                          <Badge tone={q.difficulty === "hard" ? "coral" : q.difficulty === "easy" ? "green" : "gold"} className="text-[10px]">
+                                            {q.difficulty}
+                                          </Badge>
+                                        </div>
+
+                                        {q.options?.length ? (
+                                          <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                                            {q.options.map((opt, oi) => {
+                                              const isAns = Array.isArray(q.correct) && (q.correct.includes(oi) || q.correct.includes(opt));
+                                              return (
+                                                <div
+                                                  key={oi}
+                                                  className={cx(
+                                                    "rounded px-2 py-1 text-[11px] flex items-center justify-between border",
+                                                    isAns
+                                                      ? "border-emerald-400 bg-emerald-100/70 font-bold text-emerald-900"
+                                                      : "border-slate-200 bg-white text-slate-700"
+                                                  )}
+                                                >
+                                                  <span>{String.fromCharCode(65 + oi)}) {opt}</span>
+                                                  {isAns ? <span className="text-emerald-700 font-bold">✓ সঠিক</span> : null}
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        ) : q.correct?.length ? (
+                                          <p className="mt-1 text-xs text-emerald-700 font-bold">
+                                            সঠিক উত্তর: {q.correct.join(", ")}
+                                          </p>
+                                        ) : null}
+
+                                        {q.explanation ? (
+                                          <p className="mt-1.5 text-[11px] text-slate-600 bg-white p-1.5 rounded border border-slate-100">
+                                            📝 <b>ব্যাখ্যা:</b> {q.explanation}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-slate-200 pt-3">
+                    <p className="text-xs font-semibold text-teal-800">
+                      মোট {selectedSecQuestionKeys.size}টি প্রস্তাবিত প্রশ্ন কুইজের জন্য প্রস্তুত
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="md"
+                        loading={busy}
+                        disabled={selectedSecQuestionKeys.size === 0}
+                        onClick={importSelectedSuggestions}
+                        className="bg-teal-700 hover:bg-teal-800 text-white font-bold"
+                      >
+                        📥 নির্বাচিত {selectedSecQuestionKeys.size}টি প্রশ্ন রিভিউতে পাঠান
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ) : null}
 
               <Card>
                 <SectionTitle title="৩️⃣ প্রশ্নের ধরন ও সংখ্যা" />

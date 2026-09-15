@@ -40,12 +40,12 @@ export async function POST(req: Request) {
       if (!body.data || typeof body.data !== "object") return fail("data required");
       const name = String((body.data as Record<string, unknown>).name ?? "").trim();
       if (!name) return fail("নাম দিন");
-      const existing = await db.select({ id: table.id }).from(table).where(eq(table.name, name)).limit(1);
+      const existing = await db.select({ id: (table as any).id }).from(table).where(eq((table as any).name, name)).limit(1);
       if (existing[0]) return fail("এই নামটি আগে থেকেই আছে");
       const inserted = await db.insert(table).values(body.data as never).$returningId();
-      const row = inserted[0] ? (await db.select().from(table).where(eq(table.id, inserted[0].id)).limit(1))[0] : null;
+      const row = inserted[0] ? (await db.select().from(table).where(eq((table as any).id, inserted[0].id)).limit(1))[0] : null;
       if (!row) return fail("তথ্য যোগ করা যায়নি", 500);
-      await audit(user.id, "structure.create", body.entity, row.id);
+      await audit(user.id, "structure.create", body.entity, (row as any).id);
       return ok(row);
     }
     if (body.op === "update") {
@@ -53,20 +53,20 @@ export async function POST(req: Request) {
       if (!body.data || typeof body.data !== "object") return fail("data required");
       const name = String((body.data as Record<string, unknown>).name ?? "").trim();
       if (!name) return fail("নাম দিন");
-      const existing = await db.select({ id: table.id }).from(table).where(eq(table.name, name)).limit(1);
+      const existing = await db.select({ id: (table as any).id }).from(table).where(eq((table as any).name, name)).limit(1);
       if (existing[0] && existing[0].id !== body.id) return fail("এই নামটি আগে থেকেই আছে");
-      const changed = await db.update(table).set(body.data as never).where(eq(table.id, body.id));
+      const changed = await db.update(table).set(body.data as never).where(eq((table as any).id, body.id));
       if (!changed) return fail("তথ্য পরিবর্তন করা যায়নি", 500);
-      const row = (await db.select().from(table).where(eq(table.id, body.id)).limit(1))[0];
+      const row = (await db.select().from(table).where(eq((table as any).id, body.id)).limit(1))[0];
       if (!row) return fail("তথ্য পাওয়া যায়নি বা পরিবর্তন করা যায়নি", 404);
-      await audit(user.id, "structure.update", body.entity, row.id);
+      await audit(user.id, "structure.update", body.entity, (row as any).id);
       return ok(row);
     }
     if (body.op === "delete") {
       if (!body.id) return fail("id required");
-      const existing = (await db.select({ id: table.id }).from(table).where(eq(table.id, body.id)).limit(1))[0];
+      const existing = (await db.select({ id: (table as any).id }).from(table).where(eq((table as any).id, body.id)).limit(1))[0];
       if (!existing) return fail("তথ্য পাওয়া যায়নি বা মুছতে পারা যায়নি", 404);
-      await db.delete(table).where(eq(table.id, body.id));
+      await db.delete(table).where(eq((table as any).id, body.id));
       await audit(user.id, "structure.delete", body.entity, existing.id);
       return ok({ ok: true, id: existing.id });
     }

@@ -475,6 +475,41 @@ export type GenerateParams = {
   documentText?: string;
 };
 
+export type PdfTocSubSection = {
+  subId: string;
+  title: string;
+  pageFrom: number;
+  pageTo: number;
+  summary?: string;
+  suggestedTopics: string[];
+  recommendedQuestionTypes?: string[];
+};
+
+export type PdfTocChapter = {
+  chapterId: string;
+  title: string;
+  pageFrom: number;
+  pageTo: number;
+  subSections: PdfTocSubSection[];
+};
+
+export type PdfTocAnalysis = {
+  documentName: string;
+  totalPages: number;
+  tocFoundOnPages?: number[];
+  chapters: PdfTocChapter[];
+};
+
+export type PdfSectionSuggestion = {
+  id: string;
+  title: string;
+  pageFrom: number;
+  pageTo: number;
+  summary: string;
+  keyTopics: string[];
+  questions: GeneratedQuestion[];
+};
+
 /* ------------------------------------------------------------------ */
 /* Built-in generator (works with zero configuration)                  */
 /* ------------------------------------------------------------------ */
@@ -845,6 +880,389 @@ Return ONLY the JSON array.`;
     }
   }
   return builtinQuestions(params);
+}
+
+function pagesToText(pages: string[], startPage: number, endPage: number): string {
+  return pages
+    .slice(Math.max(0, startPage - 1), Math.min(pages.length, endPage))
+    .join("\n\n");
+}
+
+export async function analyzePdfTocStructure(opts: {
+  pages: string[];
+  docName: string;
+  outline?: { title: string; pageFrom: number; pageTo: number }[];
+  language?: "bn" | "en" | "mixed";
+}): Promise<PdfTocAnalysis> {
+  const { pages, docName, outline, language = "bn" } = opts;
+  const totalPages = pages.length;
+
+  const tocPagesIdx: number[] = [];
+  const tocKeywords = [
+    "contents",
+    "table of contents",
+    "সূচিপত্র",
+    "সূচি",
+    "সূচী",
+    "অধ্যায়",
+    "বিষয়বস্তু",
+    "index",
+  ];
+
+  pages.slice(0, Math.min(20, totalPages)).forEach((pText, i) => {
+    const lower = pText.toLowerCase();
+    if (tocKeywords.some((kw) => lower.includes(kw))) {
+      tocPagesIdx.push(i + 1);
+    }
+  });
+
+  const sampleTextParts: string[] = [];
+  if (tocPagesIdx.length) {
+    tocPagesIdx.forEach((pNum) => {
+      sampleTextParts.push(`[--- TOC PAGE ${pNum} ---]\n${pages[pNum - 1]?.slice(0, 3000)}`);
+    });
+  } else {
+    pages.slice(0, Math.min(5, totalPages)).forEach((pText, i) => {
+      sampleTextParts.push(`[--- PAGE ${i + 1} ---]\n${pText.slice(0, 2500)}`);
+    });
+  }
+
+  for (let p = 1; p <= totalPages; p += Math.max(3, Math.floor(totalPages / 15))) {
+    if (!tocPagesIdx.includes(p) && p > 5) {
+      sampleTextParts.push(`[--- PAGE ${p} HEADING SAMPLE ---]\n${pages[p - 1]?.slice(0, 500)}`);
+    }
+  }
+
+  const combinedTocContext = sampleTextParts.join("\n\n").slice(0, 35000);
+
+  const info = getProviderInfo();
+  if (info.configured && combinedTocContext.length > 50) {
+    const prompt = `You are an expert curriculum author analyzing the Table of Contents (TOC) and hierarchical sub-section structure of a PDF textbook.
+Document Name: "${docName}"
+Total Pages: ${totalPages}
+Detected Page Outlines: ${JSON.stringify(outline ?? [])}
+Language: ${language} (bn = Bangla, en = English)
+
+SOURCE SAMPLE TEXT & TOC PAGES:
+${combinedTocContext}
+
+TASK:
+1. Identify the Table of Contents structure, chapters, and nested sub-sections/sub-topics.
+2. For each main chapter, list its sub-sections (sub-topics) along with page ranges (pageFrom and pageTo).
+3. For each sub-section, suggest 2 to 5 specific topics/concepts that teachers can select to generate target quiz questions.
+
+Return strictly a JSON object matching this schema:
+{
+  "documentName": "${docName}",
+  "totalPages": ${totalPages},
+  "tocFoundOnPages": ${JSON.stringify(tocPagesIdx.length ? tocPagesIdx : [1])},
+  "chapters": [
+    {
+      "chapterId": "chap_1",
+      "title": "অধ্যায় ১: ভৌত রাশি ও পরিমাপ",
+      "pageFrom": 1,
+      "pageTo": 15,
+      "subSections": [
+        {
+          "subId": "sub_1_1",
+          "title": "১.১ পদার্থবিজ্ঞান ও পরিমাপের ইতিহাস",
+          "pageFrom": 1,
+          "pageTo": 5,
+          "summary": "পদার্থবিজ্ঞানের মৌলিক ধারণা ও বৈজ্ঞানিক পদ্ধতি",
+          "suggestedTopics": ["ভৌত রাশি", "মৌলিক একক", "লব্ধ একক"],
+          "recommendedQuestionTypes": ["mcq", "short_answer", "true_false"]
+        }
+      ]
+    }
+  ]
+}`;
+
+    const raw = await callProvider(
+      [
+        {
+          role: "system",
+          content:
+            "You are an educational AI structure analyzer that parses textbook Table of Contents into hierarchical chapters and sub-sections for quiz creation. Output strict JSON only.",
+        },
+        { role: "user", content: prompt },
+      ],
+      8000,
+    );
+
+    const parsed = extractJson<PdfTocAnalysis>(raw);
+    if (parsed && Array.isArray(parsed.chapters) && parsed.chapters.length) {
+      return {
+        documentName: docName,
+        totalPages,
+        tocFoundOnPages: parsed.tocFoundOnPages ?? tocPagesIdx,
+        chapters: parsed.chapters.map((ch, cIdx) => ({
+          chapterId: ch.chapterId || `chap_${cIdx + 1}`,
+          title: String(ch.title || `অধ্যায় ${cIdx + 1}`),
+          pageFrom: Number(ch.pageFrom) || 1,
+          pageTo: Number(ch.pageTo) || totalPages,
+          subSections: (Array.isArray(ch.subSections) ? ch.subSections : []).map((sub, sIdx) => ({
+            subId: sub.subId || `sub_${cIdx + 1}_${sIdx + 1}`,
+            title: String(sub.title || `সাব-সেকশন ${cIdx + 1}.${sIdx + 1}`),
+            pageFrom: Number(sub.pageFrom) || Number(ch.pageFrom) || 1,
+            pageTo: Number(sub.pageTo) || Number(ch.pageTo) || totalPages,
+            summary: String(sub.summary || ""),
+            suggestedTopics: Array.isArray(sub.suggestedTopics)
+              ? sub.suggestedTopics.map(String)
+              : ["মৌলিক ধারণা", "মূল প্রশ্নাবলী"],
+            recommendedQuestionTypes: Array.isArray(sub.recommendedQuestionTypes)
+              ? sub.recommendedQuestionTypes.map(String)
+              : ["mcq", "short_answer", "true_false"],
+          })),
+        })),
+      };
+    }
+  }
+
+  const chapters: PdfTocChapter[] = [];
+  if (outline && outline.length) {
+    outline.forEach((o, i) => {
+      const cFrom = o.pageFrom;
+      const cTo = o.pageTo;
+      const span = Math.max(1, cTo - cFrom + 1);
+      const subChunk = Math.max(1, Math.ceil(span / 2));
+
+      const subSections: PdfTocSubSection[] = [];
+      let curP = cFrom;
+      let subIdx = 1;
+
+      while (curP <= cTo) {
+        const endP = Math.min(cTo, curP + subChunk - 1);
+        const secText = pagesToText(pages, curP, endP);
+        const kw = keywords(secText);
+        subSections.push({
+          subId: `sub_${i + 1}_${subIdx}`,
+          title: kw.length ? `${i + 1}.${subIdx} ${kw[0]} সংক্রান্ত মূল পাঠ` : `পরিচ্ছেদ ${i + 1}.${subIdx}`,
+          pageFrom: curP,
+          pageTo: endP,
+          summary: `পেজ ${curP} থেকে ${endP}-এর মূল পাঠ আলোচনা।`,
+          suggestedTopics: kw.length ? kw.slice(0, 4) : ["ধারণা", "প্রশ্নোত্তর"],
+          recommendedQuestionTypes: ["mcq", "true_false", "short_answer"],
+        });
+        curP = endP + 1;
+        subIdx++;
+      }
+
+      chapters.push({
+        chapterId: `chap_${i + 1}`,
+        title: o.title,
+        pageFrom: cFrom,
+        pageTo: cTo,
+        subSections,
+      });
+    });
+  }
+
+  if (!chapters.length) {
+    const chapCount = Math.min(4, Math.max(1, Math.ceil(totalPages / 10)));
+    const chapSpan = Math.ceil(totalPages / chapCount);
+
+    for (let c = 0; c < chapCount; c++) {
+      const cFrom = c * chapSpan + 1;
+      const cTo = Math.min(totalPages, (c + 1) * chapSpan);
+      const cText = pagesToText(pages, cFrom, cTo);
+      const kw = keywords(cText);
+
+      chapters.push({
+        chapterId: `chap_${c + 1}`,
+        title: kw.length ? `অধ্যায় ${c + 1}: ${kw[0]} বিষয়বস্তু` : `অধ্যায় ${c + 1}`,
+        pageFrom: cFrom,
+        pageTo: cTo,
+        subSections: [
+          {
+            subId: `sub_${c + 1}_1`,
+            title: `পরিচ্ছেদ ${c + 1}.১ (পেজ ${cFrom}-${cTo})`,
+            pageFrom: cFrom,
+            pageTo: cTo,
+            summary: `পেজ ${cFrom} থেকে ${cTo}-এর বিষয়বস্তু।`,
+            suggestedTopics: kw.slice(0, 4),
+            recommendedQuestionTypes: ["mcq", "short_answer"],
+          },
+        ],
+      });
+    }
+  }
+
+  return {
+    documentName: docName,
+    totalPages,
+    tocFoundOnPages: tocPagesIdx.length ? tocPagesIdx : [1],
+    chapters,
+  };
+}
+
+export async function suggestPdfSections(opts: {
+  pages: string[];
+  pageFrom: number;
+  pageTo: number;
+  docName: string;
+  outline?: { title: string; pageFrom: number; pageTo: number }[];
+  language?: "bn" | "en" | "mixed";
+}): Promise<PdfSectionSuggestion[]> {
+  const { pages, pageFrom, pageTo, docName, outline, language = "bn" } = opts;
+  const from = Math.max(1, pageFrom);
+  const to = Math.min(pages.length, pageTo);
+  const totalPagesInRange = Math.max(1, to - from + 1);
+
+  const pageSnippets: { pageNum: number; text: string }[] = [];
+  for (let p = from; p <= to; p++) {
+    const text = (pages[p - 1] ?? "").trim();
+    if (text) {
+      pageSnippets.push({ pageNum: p, text: text.slice(0, 3000) });
+    }
+  }
+
+  const combinedText = pageSnippets
+    .map((ps) => `[--- PAGE ${ps.pageNum} ---]\n${ps.text}`)
+    .join("\n\n")
+    .slice(0, 35000);
+
+  const info = getProviderInfo();
+  if (info.configured && combinedText.length > 50) {
+    const prompt = `You are an expert curriculum author analyzing a PDF textbook/document for teachers to build a quiz.
+Document Name: "${docName}"
+Selected Page Range: Pages ${from} to ${to} (Total ${totalPagesInRange} pages)
+${outline && outline.length ? `Detected Outline Sections: ${JSON.stringify(outline)}` : ""}
+Language: ${language} (bn = Bangla, en = English)
+
+SOURCE TEXT FROM PDF PAGES:
+${combinedText}
+
+TASK:
+1. Partition these pages into 2 to 5 logical sections/chapters based on topics discussed in the text.
+2. For each section, specify:
+   - "id": unique string id (e.g. "sec_1", "sec_2")
+   - "title": Descriptive section title in ${language === "en" ? "English" : "Bangla"} (e.g. "অধ্যায় ১: তড়িৎ প্রসেস ও কারেন্ট (পেজ ১-৩)")
+   - "pageFrom": start page number in this section (must be within ${from}..${to})
+   - "pageTo": end page number in this section (must be within ${from}..${to})
+   - "summary": 1-2 sentence summary of key learning concepts in this section
+   - "keyTopics": array of 2-4 key concept tags/words
+   - "questions": array of 2 to 4 high-quality quiz questions generated STRICTLY from the text of this section.
+     Each question object format:
+     {"text","type","options":["A","B","C","D"],"correct":[0],"explanation","hint","objective","difficulty","marks","timer","language"}
+     Allowed question types: mcq, true_false, short_answer, fill_blank, scenario, matching, word_jumble, odd_one_out.
+
+Return ONLY a valid JSON array of section objects matching this schema.`;
+
+    const raw = await callProvider(
+      [
+        {
+          role: "system",
+          content:
+            "You are an expert educational AI assistant that creates page-specific quiz section suggestions for teachers. Output strict JSON array only.",
+        },
+        { role: "user", content: prompt },
+      ],
+      8000,
+    );
+
+    const parsed = extractJson<PdfSectionSuggestion[]>(raw);
+    if (parsed && Array.isArray(parsed) && parsed.length) {
+      return parsed.map((sec, idx) => ({
+        id: sec.id || `sec_${idx + 1}`,
+        title: String(sec.title || `সেকশন ${idx + 1} (পেজ ${sec.pageFrom || from}-${sec.pageTo || to})`),
+        pageFrom: Number(sec.pageFrom) || from,
+        pageTo: Number(sec.pageTo) || to,
+        summary: String(sec.summary || ""),
+        keyTopics: Array.isArray(sec.keyTopics) ? sec.keyTopics.map(String) : [],
+        questions: (Array.isArray(sec.questions) ? sec.questions : []).map((q) => shuffleOptions({
+          ...q,
+          type: (q.type ?? "mcq") as QuestionType,
+          options: Array.isArray(q.options) ? q.options : [],
+          correct: Array.isArray(q.correct) ? q.correct : [0],
+          marks: Number(q.marks) || 1,
+          timer: Number(q.timer) || suggestTimer(q.difficulty ?? "medium", q.type ?? "mcq", 30),
+          difficulty: (q.difficulty as "easy" | "medium" | "hard") ?? "medium",
+          language: q.language ?? language,
+          explanation: q.explanation ?? "",
+          hint: q.hint ?? "",
+          objective: q.objective ?? "",
+        })),
+      }));
+    }
+  }
+
+  // Fallback if no provider or LLM fails: create sections based on outline or page blocks
+  const sections: PdfSectionSuggestion[] = [];
+  if (outline && outline.length) {
+    const relevantOutline = outline.filter(
+      (o) => o.pageFrom <= to && o.pageTo >= from
+    );
+    if (relevantOutline.length) {
+      relevantOutline.forEach((o, i) => {
+        const sFrom = Math.max(from, o.pageFrom);
+        const sTo = Math.min(to, o.pageTo);
+        const secText = pagesToText(pages, sFrom, sTo);
+        const qs = builtinQuestions({
+          count: 3,
+          language,
+          types: ["mcq", "true_false", "short_answer"],
+          difficulty: "medium",
+          marks: 1,
+          timer: 30,
+          withExplanation: true,
+          withHint: true,
+          topic: o.title,
+          documentText: secText,
+        });
+        sections.push({
+          id: `sec_ol_${i + 1}`,
+          title: `${o.title} (পেজ ${sFrom}-${sTo})`,
+          pageFrom: sFrom,
+          pageTo: sTo,
+          summary: `পেজ ${sFrom} থেকে ${sTo} পর্যন্ত ${o.title} নিয়ে মূল আলোচনা।`,
+          keyTopics: keywords(secText).slice(0, 4),
+          questions: qs,
+        });
+      });
+      if (sections.length) return sections;
+    }
+  }
+
+  const chunkSize = Math.max(1, Math.min(5, Math.ceil(totalPagesInRange / 3)));
+  let curr = from;
+  let secIndex = 1;
+  while (curr <= to) {
+    const endP = Math.min(to, curr + chunkSize - 1);
+    const secText = pagesToText(pages, curr, endP);
+    const kw = keywords(secText);
+    const secTitle = kw.length
+      ? language === "en"
+        ? `Section ${secIndex}: ${kw[0].toUpperCase()} (Pages ${curr}-${endP})`
+        : `সেকশন ${secIndex}: ${kw[0]} সংক্রান্ত আলোচনা (পেজ ${curr}-${endP})`
+      : `সেকশন ${secIndex} (পেজ ${curr}-${endP})`;
+
+    const qs = builtinQuestions({
+      count: 3,
+      language,
+      types: ["mcq", "true_false", "short_answer"],
+      difficulty: "medium",
+      marks: 1,
+      timer: 30,
+      withExplanation: true,
+      withHint: true,
+      topic: secTitle,
+      documentText: secText,
+    });
+
+    sections.push({
+      id: `sec_chunk_${secIndex}`,
+      title: secTitle,
+      pageFrom: curr,
+      pageTo: endP,
+      summary: `পেজ ${curr} থেকে ${endP}-এর প্রধান ধারণা ও বিষয়বস্তুর ওপর ভিত্তিকৃত প্রশ্নাবলী।`,
+      keyTopics: kw.slice(0, 4),
+      questions: qs,
+    });
+    secIndex++;
+    curr = endP + 1;
+  }
+
+  return sections;
 }
 
 /**

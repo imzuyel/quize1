@@ -7,11 +7,13 @@ import { DEFAULT_SETTINGS, EXAM_SETTINGS } from "@/lib/quiz-settings";
 import { fail, guard, ok } from "@/lib/api";
 import { isStaff, requireUser } from "@/lib/auth";
 import {
+  analyzePdfTocStructure,
   generateQuestions,
   generateTemplate,
   getProviderInfo,
   qualityCheck,
   smartQuizPlan,
+  suggestPdfSections,
   summarizeFeedback,
   teachingInsights,
   transformQuestion,
@@ -350,6 +352,53 @@ export async function POST(req: Request) {
         )[0];
         void runJob(job.id, params);
         return ok({ jobId: job.id, pagesUsed: to - from + 1, chars: text.length });
+      }
+      case "suggestDocSections": {
+        if (!isStaff(user.role)) return fail("Forbidden", 403);
+        const docId = Number(body.documentId);
+        let row = (await db.select().from(documents).where(eq(documents.id, docId)).limit(1))[0] as any;
+        if (!row) {
+          const pdfRow = (await db.select().from(pdfLibrary).where(eq(pdfLibrary.id, docId)).limit(1))[0];
+          if (pdfRow) {
+            row = { id: pdfRow.id, name: pdfRow.title, pages: pdfRow.pages, pageCount: pdfRow.pageCount, outline: pdfRow.outline };
+          }
+        }
+        if (!row) return fail("ডকুমেন্ট পাওয়া যায়নি", 404);
+        const pages = (row.pages as string[]) ?? [];
+        const from = Math.max(1, Number(body.pageFrom ?? 1));
+        const to = Math.min(pages.length, Number(body.pageTo ?? pages.length));
+        if (to < from) return fail("পেজ রেঞ্জ সঠিক নয়");
+        const outline = (row.outline as any[]) ?? detectOutline(pages);
+        const suggestions = await suggestPdfSections({
+          pages,
+          pageFrom: from,
+          pageTo: to,
+          docName: row.name,
+          outline,
+          language: (body.language as "bn") ?? "bn",
+        });
+        return ok({ suggestions });
+      }
+      case "analyzePdfToc": {
+        if (!isStaff(user.role)) return fail("Forbidden", 403);
+        const docId = Number(body.documentId);
+        let row = (await db.select().from(documents).where(eq(documents.id, docId)).limit(1))[0] as any;
+        if (!row) {
+          const pdfRow = (await db.select().from(pdfLibrary).where(eq(pdfLibrary.id, docId)).limit(1))[0];
+          if (pdfRow) {
+            row = { id: pdfRow.id, name: pdfRow.title, pages: pdfRow.pages, pageCount: pdfRow.pageCount, outline: pdfRow.outline };
+          }
+        }
+        if (!row) return fail("ডকুমেন্ট পাওয়া যায়নি", 404);
+        const pages = (row.pages as string[]) ?? [];
+        const outline = (row.outline as any[]) ?? detectOutline(pages);
+        const analysis = await analyzePdfTocStructure({
+          pages,
+          docName: row.name,
+          outline,
+          language: (body.language as "bn") ?? "bn",
+        });
+        return ok({ analysis });
       }
       case "transform": {
         if (!isStaff(user.role)) return fail("Forbidden", 403);
