@@ -107,7 +107,7 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
   const theme = mergeTemplate(snapshot?.theme);
 
   return (
-    <ThemeStage config={theme} className="min-h-screen text-white">
+    <ThemeStage config={theme} className="min-h-screen text-white bg-slate-950">
       {intro && snapshot ? (
         <CinematicIntro
           title={snapshot.quiz.title}
@@ -118,426 +118,406 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
       ) : null}
 
       <div className={`mx-auto max-w-6xl p-3 sm:p-5 transition-all ${presentation ? "max-w-[1500px]" : ""}`}>
-        <header className={`mb-4 flex flex-wrap items-center gap-2 ${presentation ? "opacity-80 hover:opacity-100" : ""}`}>
-          <Link href="/teacher/live" className="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold">
-            ← সেশন তালিকা
-          </Link>
-          <Badge tone={status === "connected" ? "green" : "coral"}>
-            {status === "connected" ? "● লাইভ" : "◌ পুনঃসংযোগ"}
-          </Badge>
-          <div className="flex-1" />
-          <span className="rounded-xl bg-white px-4 py-2 text-lg font-black tracking-[0.2em] text-[var(--pg-deep)]">
-            {pin}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => setShowQr(true)}>QR কোড</Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(joinUrl);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1600);
-              } catch {
-                push("Join link কপি করা যায়নি", "error");
-              }
-            }}
-          >
-            {copied ? "✓ কপি হয়েছে" : "🔗 Join Link"}
-          </Button>
-          <Link href={`/teacher/controller/${pin}`}>
-            <Button variant="outline" size="sm">📱 মোবাইল কন্ট্রোল</Button>
-          </Link>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLeaderboardOpen(true)}
-            className="border-amber-400/50 bg-amber-400/20 text-amber-200 font-bold hover:bg-amber-400/30 shadow-sm"
-          >
-            🏆 লিডারবোর্ড
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowPaletteModal(true)}
-            className="relative font-bold"
-            title="প্রশ্ন প্যালেট ও রিয়েল-টাইম বিশ্লেষণ দেখুন"
-          >
-            🗺️ প্রশ্ন প্যালেট
-            {snapshot?.palette?.some((p) => p.isStruggling) && (
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+        {/* STREAMLINED HIGH-CONTRAST HEADER WITH PROMINENT LIVE JOIN COUNT */}
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 border-2 border-slate-700/90 p-3 shadow-2xl backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <Link href="/teacher/live" className="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/20 transition">
+              ← সেশন তালিকা
+            </Link>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/50 px-3 py-1 text-xs font-bold text-emerald-300">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
               </span>
-            )}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => { setPresentation((v) => !v); sounds.unlock(); }}>{presentation ? "🪟 সাধারণ" : "🎬 Presentation"}</Button>
-          <Button variant="outline" size="sm" onClick={() => { setSoundOn((v) => !v); if (!soundOn) sounds.unlock(); }}>{soundOn ? "🔊" : "🔇"}</Button>
-          <FullscreenButton className="rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/20" />
+              {state === "lobby" ? "● লবি খোলা" : "● লাইভ সেশন"}
+            </span>
+
+            {/* PROMINENT GAME PIN */}
+            <span className="rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 px-4 py-1.5 text-base sm:text-lg font-black tracking-widest text-slate-950 shadow-md">
+              PIN: {pin}
+            </span>
+
+            {/* UNMISSABLE EXTRA-LARGE LIVE PLAYER JOIN COUNT */}
+            <div className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/30 to-indigo-500/20 border-2 border-emerald-400/80 px-4 py-1.5 shadow-lg shadow-emerald-500/20">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400" />
+              </span>
+              <span className="text-xs sm:text-sm font-black text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
+                👥 জয়েন করেছে:
+                <span className="text-slate-950 text-base sm:text-lg font-black tabular-nums bg-emerald-400 px-3 py-0.5 rounded-xl shadow-md border border-emerald-300">
+                  {totalPlayers} জন
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(joinUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1600);
+                } catch {
+                  push("Join link কপি করা যায়নি", "error");
+                }
+              }}
+              className="border-slate-600 bg-slate-800 text-slate-200 font-bold hover:bg-slate-700 text-xs"
+            >
+              {copied ? "✓ কপি হয়েছে" : "🔗 লিংক"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowQr(true)} className="border-slate-600 bg-slate-800 text-slate-200 font-bold hover:bg-slate-700 text-xs">
+              📱 QR
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLeaderboardOpen(true)}
+              className="border-amber-400/60 bg-amber-400/20 text-amber-300 font-extrabold hover:bg-amber-400/30 text-xs shadow-sm"
+            >
+              🏆 লিডারবোর্ড
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setSoundOn((v) => !v); if (!soundOn) sounds.unlock(); }}
+              className="border-slate-600 bg-slate-800 text-slate-200 text-xs"
+            >
+              {soundOn ? "🔊" : "🔇"}
+            </Button>
+            <FullscreenButton className="rounded-xl bg-slate-800 border border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-200 hover:bg-slate-700" />
+          </div>
         </header>
 
+        {/* MAIN LIVE STAGE AREA */}
         <div className={`grid gap-4 ${presentation ? "grid-cols-1" : "lg:grid-cols-[1fr_320px]"}`}>
           <div className="space-y-4">
-            <Card className="bg-white/95 text-slate-900">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase text-slate-400">{stateLabel(state)}</p>
-                  <h1 className="text-lg font-extrabold">{snapshot?.quiz.title ?? "লোড হচ্ছে…"}</h1>
-                  <p className="text-xs text-slate-500">
-                    প্রশ্ন {(snapshot?.session.currentIndex ?? 0) + 1}/{snapshot?.session.total ?? 0} ·{" "}
-                    {totalPlayers} জন অংশগ্রহণকারী
-                  </p>
-                  {state === "question_active" && everyoneAnswered ? (
-                    <p className="anim-pop mt-1 text-xs font-bold text-emerald-600">
-                      ✅ সবাই উত্তর দিয়েছে — উত্তর দেখানো হচ্ছে…
-                    </p>
-                  ) : null}
-                  {state === "question_active" || state === "answer_locked" ? (
-                    <div className="mt-1.5 w-48">
-                      <div className="flex justify-between text-[11px] font-bold text-slate-500">
-                        <span>উত্তর জমা</span>
-                        <span className="tabular-nums">{answeredCount}/{totalPlayers}</span>
+            {/* LOBBY VIEW */}
+            {state === "lobby" ? (
+              <Card className="bg-slate-900 border border-slate-800 p-2 sm:p-4">
+                <LiveKahootLobby
+                  pin={pin}
+                  joinKeyword={snapshot?.session?.joinKeyword}
+                  quizTitle={snapshot?.quiz?.title ?? "লাইভ কুইজ"}
+                  totalQuestions={snapshot?.session?.total ?? 0}
+                  players={snapshot?.players ?? []}
+                  lobbyLocked={Boolean(snapshot?.session?.lobbyLocked)}
+                  onStart={() => control("start")}
+                  onKick={(playerId) => control("kick", { playerId })}
+                  onToggleLock={() => control("toggleLock")}
+                  onShowQr={() => setShowQr(true)}
+                  isStarting={busy === "start"}
+                  chatMessages={chatMessages}
+                  chatEnabled={chatEnabled}
+                  onSendMessage={async (text) => {
+                    await sendChatMessage(text, "হোস্ট", "host");
+                  }}
+                  onToggleChat={async (enabled) => {
+                    await toggleChat(enabled);
+                  }}
+                />
+              </Card>
+            ) : null}
+
+            {/* ACTIVE QUESTION & ANSWER REVEAL STAGE */}
+            {q && state !== "lobby" && state !== "quiz_complete" ? (
+              <div className="space-y-4">
+                {/* HIGH-CONTRAST QUESTION STATUS & JOIN COUNTER BANNER */}
+                <div className="rounded-2xl bg-slate-900 border-2 border-slate-700 p-4 shadow-xl">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-xl bg-indigo-600 px-3 py-1 text-xs font-black uppercase text-white tracking-wide shadow">
+                        প্রশ্ন {(snapshot?.session.currentIndex ?? 0) + 1} / {snapshot?.session.total ?? 0}
+                      </span>
+                      <h2 className="text-base sm:text-lg font-bold text-white truncate max-w-md">
+                        {snapshot?.quiz.title}
+                      </h2>
+                    </div>
+
+                    {/* DYNAMIC ANSWERED COUNT & LIVE PLAYER COUNT BADGE */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 rounded-xl bg-slate-800 border border-slate-700 px-3.5 py-1.5 text-slate-200 text-xs sm:text-sm font-black">
+                        <span className="text-cyan-400">👥 জয়েন করেছে: <b className="text-white text-base tabular-nums">{totalPlayers}</b> জন</span>
+                        <span className="text-slate-600">|</span>
+                        <span className="text-amber-300">📝 উত্তর: <b className="text-white text-base tabular-nums">{answeredCount}/{totalPlayers}</b> ({answerPct}%)</span>
                       </div>
-                      <div className="mt-0.5 h-2 overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${answerPct}%`, background: theme.primary }}
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-                {q && state !== "lobby" ? (
-                  <QuizTimer
-                    endsAt={snapshot!.session.endsAt}
-                    total={q.timer}
-                    style={theme.timerStyle}
-                    color={theme.accent}
-                    paused={snapshot!.session.paused}
-                    size={84}
-                  />
-                ) : null}
-              </div>
 
-              {state === "lobby" ? (
-                <div className="mt-4">
-                  <LiveKahootLobby
-                    pin={pin}
-                    joinKeyword={snapshot?.session?.joinKeyword}
-                    quizTitle={snapshot?.quiz?.title ?? "লাইভ কুইজ"}
-                    totalQuestions={snapshot?.session?.total ?? 0}
-                    players={snapshot?.players ?? []}
-                    lobbyLocked={Boolean(snapshot?.session?.lobbyLocked)}
-                    onStart={() => control("start")}
-                    onKick={(playerId) => control("kick", { playerId })}
-                    onToggleLock={() => control("toggleLock")}
-                    onShowQr={() => setShowQr(true)}
-                    isStarting={busy === "start"}
-                    chatMessages={chatMessages}
-                    chatEnabled={chatEnabled}
-                    onSendMessage={async (text) => {
-                      await sendChatMessage(text, "হোস্ট", "host");
-                    }}
-                    onToggleChat={async (enabled) => {
-                      await toggleChat(enabled);
-                    }}
-                  />
-                </div>
-              ) : null}
-
-              {q && state !== "lobby" && state !== "quiz_complete" ? (
-                <div className="mt-4">
-                  {/* Visual Timer & Countdown Gauge for Active Question */}
-                  <div className="mb-4">
-                    <LiveSessionPacingTimer
-                      endsAt={snapshot!.session.endsAt}
-                      totalSeconds={q.timer}
-                      paused={snapshot!.session.paused}
-                      questionIndex={snapshot!.session.currentIndex}
-                      totalQuestions={snapshot!.session.total}
-                      answeredCount={answeredCount}
-                      totalPlayers={totalPlayers}
-                      revealed={q.revealed}
-                      onExtend={(s) => control("extend", { seconds: s })}
-                      onTogglePause={() => control(snapshot?.session.paused ? "resume" : "pause")}
-                      onReveal={() => control("reveal")}
-                    />
-                  </div>
-
-                  {presentation && q ? (
-                    <div className="mb-4 flex items-center justify-between gap-4 rounded-2xl bg-slate-950 px-4 py-3 text-white shadow-xl">
-                      <span className="text-sm font-bold sm:text-lg">প্রশ্ন {snapshot!.session.currentIndex + 1} / {snapshot!.session.total}</span>
-                      <span className="text-sm font-black tabular-nums sm:text-lg">{answeredCount}/{totalPlayers} উত্তর</span>
-                    </div>
-                  ) : null}
-                  <div className="mt-4">
-                    <QuizPlate
-                      plateStyle={settings?.plateStyle || "auto"}
-                      questionIndex={snapshot!.session.currentIndex}
-                      totalQuestions={snapshot!.session.total}
-                      questionText={q.text}
-                      options={q.options}
-                      type={q.type}
-                      reveal={q.revealed}
-                      correct={q.correct}
-                      hint={q.hint}
-                      explanation={q.explanation}
-                      mode="host"
-                      disabled={true}
-                    />
-
-                    {q.revealed && snapshot?.tally?.length ? (
-                      <div className="mt-4 rounded-2xl bg-white/95 p-4 text-slate-900 shadow-xl">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
-                          <span>উত্তরের বিশ্লেষণ</span>
-                          <span>{snapshot.answeredCount} জন উত্তর দিয়েছে</span>
-                        </div>
-                        <AnswerDistribution
-                          options={q.options}
-                          counts={snapshot.tally}
-                          correct={q.correct ?? []}
-                          palette={theme.answerPalette}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                  {q.revealed ? (
-                    <div className="anim-fade mt-3 grid grid-cols-3 gap-2">
-                      {[
-                        { n: correctCount, l: "সঠিক", c: "bg-emerald-50 text-emerald-800 border-emerald-200", i: "✅" },
-                        { n: wrongCount, l: "ভুল", c: "bg-rose-50 text-rose-800 border-rose-200", i: "❌" },
-                        { n: notAnswered, l: "উত্তর দেয়নি", c: "bg-slate-50 text-slate-600 border-slate-200", i: "⏱️" },
-                      ].map((x) => (
-                        <div key={x.l} className={cx("rounded-xl border p-2.5 text-center", x.c)}>
-                          <p className="text-xl">{x.i}</p>
-                          <p className="text-2xl font-black tabular-nums">{x.n}</p>
-                          <p className="text-[11px] font-semibold">{x.l}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {q.revealed && q.explanation ? (
-                    <div className="anim-fade mt-3 rounded-xl bg-amber-50 p-3 text-sm">
-                      <b>ব্যাখ্যা:</b> {q.explanation}
-                    </div>
-                  ) : null}
-
-                  {q.revealed ? (
-                    <div className="mt-4 space-y-3">
-                      <LiveReadinessTracker
-                        players={snapshot?.players ?? []}
-                        readyPlayerIds={snapshot?.readyPlayers ?? []}
-                        currentIndex={snapshot?.session.currentIndex ?? 0}
-                        totalQuestions={snapshot?.session.total ?? 0}
-                        onNext={() => control("next")}
-                        isLoading={busy === "next"}
-                      />
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-                        <span className="text-xs text-slate-500">
-                          💡 শিক্ষার্থীরা প্রস্তুত হলে স্ক্রিনে টিকচিহ্ন আসবে
+                      {state === "question_active" && everyoneAnswered ? (
+                        <span className="anim-pop rounded-xl bg-emerald-500/20 border border-emerald-400 px-2.5 py-1 text-xs font-black text-emerald-300">
+                          ✅ সবাই উত্তর দিয়েছে!
                         </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => control("leaderboard")}
-                          className="border-amber-400 bg-amber-50 text-amber-900 font-bold hover:bg-amber-100 shadow-sm"
-                        >
-                          🏆 সবার স্ক্রিনে লিডারবোর্ড দেখান
-                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* HIGH-CONTRAST PROGRESS BAR */}
+                  {(state === "question_active" || state === "answer_locked") && (
+                    <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-slate-800 border border-slate-700">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-500 shadow-sm"
+                        style={{ width: `${answerPct}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* PACING TIMER & CONTROLS FOR ACTIVE QUESTION */}
+                <LiveSessionPacingTimer
+                  endsAt={snapshot!.session.endsAt}
+                  totalSeconds={q.timer}
+                  paused={snapshot!.session.paused}
+                  questionIndex={snapshot!.session.currentIndex}
+                  totalQuestions={snapshot!.session.total}
+                  answeredCount={answeredCount}
+                  totalPlayers={totalPlayers}
+                  revealed={q.revealed}
+                  onExtend={(s) => control("extend", { seconds: s })}
+                  onTogglePause={() => control(snapshot?.session.paused ? "resume" : "pause")}
+                  onReveal={() => control("reveal")}
+                />
+
+                {/* MAIN QUESTION PLATE WITH ULTRA-HIGH CONTRAST */}
+                <div className="rounded-3xl bg-slate-900 border border-slate-800 p-2 sm:p-4 shadow-2xl">
+                  <QuizPlate
+                    plateStyle={settings?.plateStyle || "auto"}
+                    questionIndex={snapshot!.session.currentIndex}
+                    totalQuestions={snapshot!.session.total}
+                    questionText={q.text}
+                    options={q.options}
+                    type={q.type}
+                    reveal={q.revealed}
+                    correct={q.correct}
+                    hint={q.hint}
+                    explanation={q.explanation}
+                    mode="host"
+                    disabled={true}
+                  />
+
+                  {/* ANSWER DISTRIBUTION & RESULTS SUMMARY */}
+                  {q.revealed && snapshot?.tally?.length ? (
+                    <div className="mt-4 rounded-2xl bg-slate-950 border border-slate-800 p-4 text-white shadow-xl">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-3">
+                        <span className="text-cyan-300 text-sm font-black">📊 উত্তরের রিয়েল-টাইম বিশ্লেষণ</span>
+                        <span className="text-slate-300 font-extrabold">{snapshot.answeredCount} জন উত্তর দিয়েছে</span>
                       </div>
+                      <AnswerDistribution
+                        options={q.options}
+                        counts={snapshot.tally}
+                        correct={q.correct ?? []}
+                        palette={theme.answerPalette}
+                      />
                     </div>
                   ) : null}
                 </div>
-              ) : null}
 
-              {state === "leaderboard" ? (
-                <div className="mt-4">
-                  <AnimatedKahootLeaderboard
-                    players={snapshot?.players ?? []}
-                    currentIndex={snapshot?.session.currentIndex ?? 0}
-                    totalQuestions={snapshot?.session.total ?? 0}
-                    onNext={() => control("next")}
-                    onClose={() => control("returnToQuestion")}
-                    isHost={true}
-                  />
-                </div>
-              ) : null}
+                {/* STATS BREAKDOWN UPON REVEAL */}
+                {q.revealed ? (
+                  <div className="anim-fade grid grid-cols-3 gap-3">
+                    {[
+                      { n: correctCount, l: "সঠিক উত্তর", c: "bg-emerald-950/80 text-emerald-300 border-emerald-500/50", i: "✅" },
+                      { n: wrongCount, l: "ভুল উত্তর", c: "bg-rose-950/80 text-rose-300 border-rose-500/50", i: "❌" },
+                      { n: notAnswered, l: "উত্তর দেয়নি", c: "bg-slate-900 text-slate-300 border-slate-700", i: "⏱️" },
+                    ].map((x) => (
+                      <div key={x.l} className={cx("rounded-2xl border p-3 text-center shadow-lg", x.c)}>
+                        <p className="text-xl">{x.i}</p>
+                        <p className="text-2xl sm:text-3xl font-black tabular-nums">{x.n}</p>
+                        <p className="text-xs font-bold mt-0.5">{x.l}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
 
-              {state === "quiz_complete" ? (
-                <>
-                  <Celebration config={theme} />
-                  <div className="mt-4 text-center">
-                    <AnimatedKahootLeaderboard
+                {/* EXPLANATION BOX */}
+                {q.revealed && q.explanation ? (
+                  <div className="anim-fade rounded-2xl bg-amber-950/90 border-2 border-amber-500/50 p-4 text-amber-100 text-sm leading-relaxed shadow-lg">
+                    <b className="text-amber-300 font-black text-base">💡 সঠিক উত্তরের ব্যাখ্যা:</b> {q.explanation}
+                  </div>
+                ) : null}
+
+                {/* HOST NEXT QUESTION & LEADERBOARD NAVIGATION */}
+                {q.revealed ? (
+                  <div className="mt-4 rounded-2xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+                    <LiveReadinessTracker
                       players={snapshot?.players ?? []}
+                      readyPlayerIds={snapshot?.readyPlayers ?? []}
                       currentIndex={snapshot?.session.currentIndex ?? 0}
                       totalQuestions={snapshot?.session.total ?? 0}
-                      isHost={true}
+                      onNext={() => control("next")}
+                      isLoading={busy === "next"}
                     />
-                    <div className="mt-5 flex justify-center gap-2">
-                      <Link href={`/teacher/reports?quizId=${snapshot?.quiz.id}`}>
-                        <Button variant="outline">রিপোর্ট দেখুন</Button>
-                      </Link>
-                      <Link href="/teacher/live">
-                        <Button>নতুন সেশন</Button>
-                      </Link>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3">
                       <Button
-                        variant="danger"
-                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-                        onClick={() => setDeleteConfirmOpen(true)}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => control("leaderboard")}
+                        className="border-amber-400/60 bg-amber-400/20 text-amber-300 font-black hover:bg-amber-400/30 shadow-md"
                       >
-                        🗑️ সেশন ডিলিট
+                        🏆 লিডারবোর্ড দেখান
+                      </Button>
+                      <Button
+                        size="lg"
+                        onClick={() => control("next")}
+                        loading={busy === "next"}
+                        className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black px-6 py-2.5 rounded-xl shadow-lg"
+                      >
+                        ➡️ পরবর্তী প্রশ্ন
                       </Button>
                     </div>
                   </div>
-                </>
-              ) : null}
-            </Card>
+                ) : null}
+              </div>
+            ) : null}
 
-            <Card className="bg-white/95 text-slate-900">
-              <p className="mb-2 text-xs font-bold uppercase text-slate-400">কন্ট্রোল সেন্টার</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <Button variant="outline" onClick={() => control("prev")}>⏮ আগের</Button>
-                <Button variant="outline" onClick={() => control(snapshot?.session.paused ? "resume" : "pause")}>
+            {/* LEADERBOARD VIEW */}
+            {state === "leaderboard" ? (
+              <Card className="bg-slate-900 border border-slate-800 text-white p-4">
+                <AnimatedKahootLeaderboard
+                  players={snapshot?.players ?? []}
+                  currentIndex={snapshot?.session.currentIndex ?? 0}
+                  totalQuestions={snapshot?.session.total ?? 0}
+                  onNext={() => control("next")}
+                  onClose={() => control("returnToQuestion")}
+                  isHost={true}
+                />
+              </Card>
+            ) : null}
+
+            {/* QUIZ COMPLETE STAGE */}
+            {state === "quiz_complete" ? (
+              <Card className="bg-slate-900 border border-slate-800 text-white p-6 text-center">
+                <Celebration config={theme} />
+                <h2 className="text-3xl font-black text-amber-300 mb-4">🎉 কুইজ সম্পূর্ণ হয়েছে!</h2>
+                <AnimatedKahootLeaderboard
+                  players={snapshot?.players ?? []}
+                  currentIndex={snapshot?.session.currentIndex ?? 0}
+                  totalQuestions={snapshot?.session.total ?? 0}
+                  isHost={true}
+                />
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <Link href={`/teacher/reports?quizId=${snapshot?.quiz.id}`}>
+                    <Button variant="outline" className="border-slate-600 bg-slate-800 text-slate-200 font-bold">
+                      📊 রিপোর্ট দেখুন
+                    </Button>
+                  </Link>
+                  <Link href="/teacher/live">
+                    <Button className="bg-teal-500 text-slate-950 font-bold">✨ নতুন সেশন</Button>
+                  </Link>
+                  <Button
+                    variant="danger"
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                    onClick={() => setDeleteConfirmOpen(true)}
+                  >
+                    🗑️ সেশন ডিলিট
+                  </Button>
+                </div>
+              </Card>
+            ) : null}
+
+            {/* QUICK HOST CONTROLS BAR */}
+            <Card className="bg-slate-900 border border-slate-800 text-white p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-black uppercase text-slate-400 tracking-wider">🎮 দ্রুত হোস্ট কন্ট্রোল</span>
+                <span className="text-xs text-indigo-300 font-bold">👥 জয়েন করেছে: {totalPlayers} জন</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Button variant="outline" size="sm" onClick={() => control("prev")} className="border-slate-700 bg-slate-800 text-slate-200 font-bold text-xs">
+                  ⏮ আগের
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => control(snapshot?.session.paused ? "resume" : "pause")} className="border-slate-700 bg-slate-800 text-slate-200 font-bold text-xs">
                   {snapshot?.session.paused ? "▶️ চালু" : "⏸ বিরতি"}
                 </Button>
-                <Button variant="outline" onClick={() => control("lock")}>🔒 লক</Button>
-                <Button variant="outline" onClick={() => control("reveal")}>👁 উত্তর দেখান</Button>
-                <Button variant="outline" onClick={() => control("leaderboard")}>🏆 লিডারবোর্ড</Button>
-                <Button variant="outline" onClick={() => control("toggleLeaderboard")}>
-                  {snapshot?.session.showLeaderboard ? "🙈 লুকান" : "👀 দেখান"}
+                <Button variant="outline" size="sm" onClick={() => control("reveal")} className="border-slate-700 bg-slate-800 text-slate-200 font-bold text-xs">
+                  👁 উত্তর দেখান
                 </Button>
-                <Button variant="outline" onClick={() => control("skip")}>⏭ স্কিপ</Button>
-                <Button onClick={() => control("next")} loading={busy === "next"}>➡️ পরবর্তী</Button>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {[5, 10, 30].map((s) => (
-                  <Button key={s} size="sm" variant="ghost" onClick={() => control("extend", { seconds: s })}>
-                    +{s}s
-                  </Button>
-                ))}
-                <Button size="sm" variant="ghost" onClick={() => control("lockLobby")}>
-                  {snapshot?.session.lobbyLocked ? "🔓 লবি খুলুন" : "🔐 লবি লক"}
-                </Button>
-                {snapshot?.session.teamMode ? (
-                  <Button size="sm" variant="ghost" onClick={() => control("shuffleTeams")}>
-                    🔀 টিম শাফল
-                  </Button>
-                ) : null}
-                <div className="flex-1" />
-                <Button size="sm" variant="danger" onClick={() => control("end")}>
-                  🛑 শেষ করুন
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-                  onClick={() => setDeleteConfirmOpen(true)}
-                >
-                  🗑️ সেশন ডিলিট
+                <Button variant="outline" size="sm" onClick={() => control("next")} loading={busy === "next"} className="border-emerald-500/50 bg-emerald-500/20 text-emerald-300 font-bold text-xs">
+                  ➡️ পরবর্তী
                 </Button>
               </div>
-
-              <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800 pt-3 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-slate-600">🎨 কুইজ প্লেট থিম:</span>
-                  <select
-                    value={settings?.plateStyle || "auto"}
-                    onChange={(e) => control("setPlateStyle", { plateStyle: e.target.value })}
-                    className="rounded-xl border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                  >
-                    <option value="auto">🎲 অটোমেটিক (প্রতি প্রশ্নে আলাদা স্টাইল)</option>
-                    <option value="neon_sunset">🌅 নিয়ন সানসেট ও প্রশ্নবোধক</option>
-                    <option value="royal_starlight">⭐ রয়্যাল স্ট্রিট ও গোল্ডেন স্টার</option>
-                    <option value="cyber_synthwave">⚡ সাইবার সিন্থওয়েভ ডুয়াল নিয়ন</option>
-                    <option value="clay_morphism">🧊 থ্রি-ডি ক্লেমরফিজম সফট ট্রে</option>
-                    <option value="golden_royale">👑 গোল্ডেন রয়্যাল চ্যাম্পিয়ন</option>
-                    <option value="emerald_matrix">🟢 এমারেল্ড সাইবার ম্যাট্রিক্স</option>
-                    <option value="cosmic_aurora">🌌 কসমিক অরোরা গ্যালাক্সি</option>
-                    <option value="candy_pop">🍬 ক্যান্ডি পপ ভাইব্রেন্ট থ্রি-ডি</option>
-                  </select>
+                  <span className="text-slate-400 font-bold">সময় বাড়ান:</span>
+                  {[5, 10, 30].map((s) => (
+                    <button key={s} onClick={() => control("extend", { seconds: s })} className="rounded-lg bg-slate-800 border border-slate-700 px-2 py-1 font-bold text-slate-300 hover:bg-slate-700">
+                      +{s}s
+                    </button>
+                  ))}
                 </div>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {settings?.plateStyle === "auto" || !settings?.plateStyle
-                    ? "✨ সার্ভার প্রতি প্রশ্নের জন্য স্বয়ংক্রিয় ভিন্ন ভিন্ন প্লেট নির্বাচন করছে"
-                    : "🔒 নির্বাচিত নির্দিষ্ট প্লেট সব প্রশ্নে প্রযোজ্য"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setShowPaletteModal(true)} className="border-slate-700 bg-slate-800 text-slate-300 text-xs font-bold">
+                    🗺️ প্রশ্ন প্যালেট
+                  </Button>
+                  <Button size="sm" variant="danger" className="bg-rose-950/80 border border-rose-700 text-rose-300 text-xs font-bold" onClick={() => setDeleteConfirmOpen(true)}>
+                    🗑️ ডিলিট
+                  </Button>
+                </div>
               </div>
             </Card>
           </div>
 
+          {/* SIDEBAR: LIVE PLAYER LIST & REACTION FLOATING AREA */}
           <div className={`${presentation ? "hidden" : "space-y-4"}`}>
-            <LiveQuestionPalette
-              palette={snapshot?.palette}
-              currentIndex={snapshot?.session.currentIndex ?? 0}
-              totalPlayers={snapshot?.players.length ?? 0}
-              onJump={(index) => control("jump", { index })}
-            />
+            <Card className="bg-slate-900 border border-slate-800 text-white p-4">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                <span className="text-xs font-black uppercase text-indigo-300 tracking-wider">
+                  👥 সংযুক্ত ছাত্র/খেলোয়াড়
+                </span>
+                <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-0.5 text-xs font-black text-emerald-300 tabular-nums">
+                  {totalPlayers} জন
+                </span>
+              </div>
 
-            <Card className="relative overflow-hidden bg-white/95 text-slate-900">
-              <p className="mb-2 text-xs font-bold uppercase text-slate-400">
-                অংশগ্রহণকারী ({snapshot?.players.length ?? 0})
-              </p>
-              <div className="max-h-64 space-y-1.5 overflow-y-auto pg-scroll">
+              <div className="max-h-72 space-y-2 overflow-y-auto pg-scroll pr-1">
                 {snapshot?.players.map((p) => (
                   <div
                     key={p.id}
                     className={cx(
-                      "flex items-center gap-2 rounded-lg border px-2 py-1.5 text-sm transition",
+                      "flex items-center gap-2.5 rounded-xl border p-2 text-xs transition shadow-sm",
                       q?.revealed && outcomes[p.id]?.correct
-                        ? "border-emerald-300 bg-emerald-50"
+                        ? "border-emerald-500/60 bg-emerald-950/60 text-emerald-200"
                         : q?.revealed && outcomes[p.id]
-                          ? "border-rose-200 bg-rose-50"
+                          ? "border-rose-500/60 bg-rose-950/60 text-rose-200"
                           : answeredBy.has(p.id)
-                            ? "border-teal-300 bg-teal-50"
-                            : "border-[var(--pg-line)]",
+                            ? "border-teal-400/60 bg-teal-950/60 text-teal-200"
+                            : "border-slate-800 bg-slate-950/80 text-slate-300",
                     )}
                   >
-                    <span className={cx("h-2 w-2 rounded-full", p.connected ? "bg-emerald-500" : "bg-slate-300")} />
-                    <span className="flex-1 truncate">{p.nickname}</span>
+                    <span className={cx("h-2.5 w-2.5 rounded-full shrink-0", p.connected ? "bg-emerald-400 shadow-sm shadow-emerald-400/80" : "bg-slate-600")} />
+                    <span className="flex-1 truncate font-bold">{p.nickname}</span>
                     {q?.revealed ? (
                       <span>{outcomes[p.id]?.correct ? "✅" : outcomes[p.id] ? "❌" : "⏱️"}</span>
                     ) : answeredBy.has(p.id) ? (
-                      <span title="উত্তর জমা দিয়েছে">✔</span>
+                      <span className="text-teal-300 font-black" title="উত্তর জমা দিয়েছে">✓ উত্তর দিয়েছে</span>
                     ) : null}
-                    <span className="tabular-nums font-bold">{Math.round(p.score)}</span>
+                    <span className="tabular-nums font-black text-amber-300">{Math.round(p.score)}</span>
                     <button
                       onClick={() => control("kick", { playerId: p.id })}
-                      className="text-xs text-rose-500"
-                      aria-label="remove"
+                      className="ml-1 text-slate-500 hover:text-rose-400 font-bold"
+                      title="খেলোয়াড় সরান"
                     >
                       ✕
                     </button>
                   </div>
                 ))}
                 {!snapshot?.players.length ? (
-                  <p className="py-4 text-center text-xs text-slate-400">অপেক্ষা করা হচ্ছে…</p>
+                  <div className="py-8 text-center text-xs text-slate-500">
+                    <p className="text-2xl mb-1">⏳</p>
+                    <p>কোনো ছাত্র এখনো জয়েন করেনি…</p>
+                  </div>
                 ) : null}
-              </div>
-              <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                {reactions.map((r) => (
-                  <span key={r.id} className="anim-float absolute text-2xl" style={{ left: `${(r.id * 13) % 85}%`, bottom: 10 }}>
-                    {r.emoji}
-                  </span>
-                ))}
               </div>
             </Card>
 
-            {snapshot?.session.showLeaderboard ? (
-              <Card className="bg-white/95 text-slate-900">
-                <p className="mb-2 text-xs font-bold uppercase text-slate-400">লিডারবোর্ড</p>
-                <Leaderboard rows={snapshot.players} limit={settings?.leaderboardSize ?? 10} compact />
-              </Card>
-            ) : null}
-
             {snapshot?.teams.length ? (
-              <Card className="bg-white/95 text-slate-900">
-                <p className="mb-2 text-xs font-bold uppercase text-slate-400">টিম স্কোর</p>
+              <Card className="bg-slate-900 border border-slate-800 text-white p-4">
+                <p className="mb-2 text-xs font-black uppercase text-slate-400">টিম স্কোর</p>
                 {snapshot.teams.map((t) => (
-                  <div key={t.id} className="mb-1.5 flex items-center gap-2 text-sm">
+                  <div key={t.id} className="mb-1.5 flex items-center gap-2 text-xs">
                     <span>{t.icon}</span>
-                    <span className="flex-1 font-semibold" style={{ color: t.color }}>{t.name}</span>
-                    <span className="font-bold tabular-nums">{Math.round(t.score)}</span>
+                    <span className="flex-1 font-bold" style={{ color: t.color }}>{t.name}</span>
+                    <span className="font-black tabular-nums text-amber-300">{Math.round(t.score)}</span>
                   </div>
                 ))}
               </Card>
@@ -545,6 +525,36 @@ export default function HostPage({ params }: { params: Promise<{ pin: string }> 
           </div>
         </div>
       </div>
+
+      {/* FULL-SCREEN FLOATING LIVE EMOJI REACTIONS LAYER */}
+      <div className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden">
+        {reactions.map((r, i) => (
+          <span
+            key={r.id || i}
+            className="anim-float absolute text-5xl sm:text-7xl filter drop-shadow-[0_8px_20px_rgba(0,0,0,0.8)] select-none"
+            style={{
+              left: `${12 + ((r.id * 19) % 76)}%`,
+              bottom: "40px",
+            }}
+          >
+            {r.emoji}
+          </span>
+        ))}
+      </div>
+
+      {/* RECENT LIVE REACTION TOAST BADGE */}
+      {reactions.length > 0 && (
+        <div className="fixed bottom-5 left-5 z-[99998] flex items-center gap-2.5 rounded-2xl bg-slate-900/95 border-2 border-amber-400/70 px-4 py-2.5 text-white shadow-2xl backdrop-blur-md anim-pop">
+          <span className="text-xs font-black text-amber-300 uppercase tracking-wider">🔥 ছাত্র রিঅ্যাকশন:</span>
+          <div className="flex items-center gap-2 text-2xl">
+            {reactions.slice(-5).map((r, idx) => (
+              <span key={idx} className="animate-bounce inline-block">
+                {r.emoji}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Modal open={showQr} onClose={() => setShowQr(false)} title="QR কোড দিয়ে যোগ দিন">
         <div className="text-center">

@@ -395,12 +395,15 @@ export async function POST(req: Request) {
     /* ------------------------------ reaction ------------------------------ */
     if (action === "react") {
       const settings = mergeSettings(session.settings);
-      const features = await getFeatures();
-      if (!settings.reactions || !features.reactions) return fail("রিঅ্যাকশন বন্ধ");
+      if (settings.reactions === false) return fail("রিঅ্যাকশন বন্ধ");
       const playerId = Number(body.playerId);
-      if (!rateLimit(`react:${playerId}`, 5, 10_000)) return fail("একটু ধীরে!", 429);
+      if (!rateLimit(`react:${playerId}`, 8, 10_000)) return fail("একটু ধীরে!", 429);
       const emoji = String(body.emoji ?? "❤️").slice(0, 4);
-      await db.insert(sessionReactions).values({ sessionId: session.id, playerId, emoji });
+      try {
+        await db.insert(sessionReactions).values({ sessionId: session.id, playerId, emoji });
+      } catch {
+        /* ignore db error for reaction logging */
+      }
       publish(`session:${canonicalPin}`, "reaction", { emoji, at: Date.now() });
       return ok({ ok: true });
     }

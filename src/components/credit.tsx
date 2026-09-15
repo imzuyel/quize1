@@ -122,59 +122,60 @@ export function CreditLine({ tone = "dark", branding }: { tone?: "dark" | "light
 /** Full developer card used on the landing page and the About page. */
 export function DeveloperCard({ compact, branding }: { compact?: boolean; branding?: { developerName?: string; developerTitle?: string; developerInstitute?: string } }) {
   return (
-    <div className="pg-surface relative rounded-3xl border border-teal-500/40 bg-slate-900/98 shadow-[0_12px_45px_-10px_rgba(0,0,0,0.85),0_0_30px_-5px_rgba(20,184,166,0.25)] overflow-hidden backdrop-blur-md transition-all duration-300 hover:border-teal-400/60 hover:shadow-[0_18px_55px_-10px_rgba(0,0,0,0.95),0_0_40px_0px_rgba(20,184,166,0.35)]">
-      {/* Background Ambient Glow inside Card */}
-      <div className="pointer-events-none absolute -top-12 -right-12 w-64 h-64 bg-teal-500/20 rounded-full blur-2xl opacity-70" />
-      <div className="pointer-events-none absolute bottom-0 left-0 w-52 h-52 bg-emerald-500/15 rounded-full blur-2xl" />
+    <div className="relative overflow-hidden rounded-3xl border-2 border-teal-400/50 bg-slate-900 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_-5px_rgba(20,184,166,0.35)] transition-all duration-300 hover:border-teal-300 hover:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_50px_0px_rgba(45,212,191,0.45)]">
+      {/* Background Ambient Luxury Gradient Lights */}
+      <div className="pointer-events-none absolute -top-16 -right-16 h-72 w-72 rounded-full bg-gradient-to-br from-teal-400/30 via-emerald-500/20 to-indigo-600/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-16 -left-16 h-72 w-72 rounded-full bg-gradient-to-tr from-amber-500/25 via-teal-500/20 to-violet-600/25 blur-3xl" />
 
-      <div className="pg-hero-bg relative px-6 py-8 text-white border-b border-slate-700/80">
-        <div className="pg-grid-lines absolute inset-0 opacity-40" />
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5 z-10">
-          <div
-            className="pg-ring-orbit grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-white/20 text-3xl font-black text-amber-300 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.7)] backdrop-blur border border-white/30"
-            style={{ ["--ring" as string]: "#f0b429" }}
-          >
-            JR
-          </div>
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-teal-400/25 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-teal-200 border border-teal-300/40 shadow-[0_0_15px_-2px_rgba(45,212,191,0.4)]">
-              ⚡ কারিগরি প্রতিষ্ঠাতা ও বিকাশকারী
+      {/* Card Header Banner with Rich Gradient */}
+      <div className="relative border-b border-slate-700/80 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-6 sm:p-8">
+        <div className="relative z-10 flex flex-col items-center sm:flex-row sm:items-start text-center sm:text-left gap-6">
+          {/* Avatar Badge with Glowing Radial Border */}
+          <div className="relative group shrink-0">
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-amber-400 via-teal-400 to-emerald-400 opacity-80 blur transition duration-300 group-hover:opacity-100" />
+            <div className="relative grid h-20 w-20 place-items-center rounded-2xl bg-slate-950 text-3xl font-black text-amber-300 shadow-2xl border-2 border-amber-400/80">
+              JR
             </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500/20 via-teal-500/20 to-emerald-500/20 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-amber-300 border border-amber-400/50 shadow-md backdrop-blur-md">
+              <span className="animate-pulse">⚡</span> কারিগরি প্রতিষ্ঠাতা ও বিকাশকারী
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">
               {branding?.developerName || AUTHOR.name}
             </h3>
-            <p className="text-sm sm:text-base font-black text-teal-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+            <p className="text-sm sm:text-base font-extrabold text-teal-300 drop-shadow">
               {branding?.developerTitle || AUTHOR.title}
             </p>
-            <p className="text-xs sm:text-sm text-slate-100 font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-              🏛️ {branding?.developerInstitute || AUTHOR.institute}
+            <p className="text-xs sm:text-sm text-slate-200 font-bold flex items-center justify-center sm:justify-start gap-1.5">
+              <span>🏛️</span> {branding?.developerInstitute || AUTHOR.institute}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="p-6 sm:p-7 bg-slate-900/98 relative z-10 space-y-5">
-        <div className="grid gap-3.5 sm:grid-cols-3">
+      {/* Links & Details Section */}
+      <div className="relative z-10 p-6 sm:p-8 bg-slate-900/95 space-y-6">
+        <div className="grid gap-4 sm:grid-cols-3">
           {AUTHOR.links.map((l) => (
             <a
               key={l.href}
               href={l.href}
               target="_blank"
               rel="noopener noreferrer me"
-              className="group flex items-center gap-3.5 rounded-2xl border border-slate-700/90 bg-slate-800/95 p-4 text-sm transition-all duration-200 hover:border-teal-400/90 hover:bg-slate-800 hover:shadow-[0_8px_24px_-4px_rgba(20,184,166,0.35)] hover:-translate-y-0.5"
-              style={{ ["--ring" as string]: l.ring }}
+              className="group flex items-center gap-3.5 rounded-2xl border-2 border-slate-700/80 bg-slate-800/90 p-4 text-sm transition-all duration-300 hover:border-teal-400 hover:bg-slate-800 hover:shadow-xl hover:shadow-teal-500/20 hover:-translate-y-1"
             >
               <span
-                className="pg-social grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-700/90 text-white transition duration-200 group-hover:scale-110 group-hover:bg-teal-500/25 shadow-md"
-                style={{ ["--ring" as string]: l.ring }}
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-slate-700/90 text-white transition duration-300 group-hover:scale-110 group-hover:bg-teal-500 text-teal-300 group-hover:text-slate-950 shadow-md"
               >
-                <BrandIcon name={l.key} size={22} />
+                <BrandIcon name={l.key} size={24} />
               </span>
               <span className="min-w-0">
-                <span className="block font-black text-white group-hover:text-teal-200 text-sm leading-snug drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                <span className="block font-black text-white group-hover:text-teal-300 text-sm leading-snug drop-shadow">
                   {l.label}
                 </span>
-                <span className="block truncate text-xs font-black text-amber-300 mt-0.5">
+                <span className="block truncate text-xs font-black text-amber-400 mt-0.5">
                   {l.handle}
                 </span>
               </span>
@@ -183,8 +184,8 @@ export function DeveloperCard({ compact, branding }: { compact?: boolean; brandi
         </div>
 
         {!compact ? (
-          <div className="rounded-2xl border border-slate-700/90 bg-slate-950/95 p-4.5 text-xs sm:text-sm font-semibold leading-relaxed text-slate-100 shadow-inner">
-            <span className="font-black text-teal-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">পিজিটিএসসি কুইজ অ্যারেনা</span> — কারিগরি ও সাধারণ শিক্ষার জন্য একটি আধুনিক এআই-চালিত ইন্টারেক্টিভ লার্নিং ও এসেসমেন্ট প্ল্যাটফর্ম। যেকোনো ডিজিটাল ক্লাসরুম বা শিক্ষাপ্রতিষ্ঠান এটি ব্যবহার করে রিয়েল-টাইম লাইভ কুইজ ও তথ্যবহুল শিক্ষার পরিবেশ গড়ে তুলতে পারবে।
+          <div className="rounded-2xl border-2 border-slate-700/80 bg-slate-950/90 p-5 text-xs sm:text-sm font-semibold leading-relaxed text-slate-200 shadow-inner">
+            <span className="font-black text-teal-300">পিজিটিএসসি কুইজ অ্যারেনা</span> — কারিগরি ও সাধারণ শিক্ষার জন্য একটি আধুনিক এআই-চালিত ইন্টারেক্টিভ লার্নিং ও এসেসমেন্ট প্ল্যাটফর্ম। যেকোনো ডিজিটাল ক্লাসরুম বা শিক্ষাপ্রতিষ্ঠান এটি ব্যবহার করে রিয়েল-টাইম লাইভ কুইজ ও তথ্যবহুল শিক্ষার পরিবেশ গড়ে তুলতে পারবে।
           </div>
         ) : null}
       </div>

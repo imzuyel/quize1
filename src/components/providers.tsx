@@ -4,8 +4,6 @@ import { Suspense, type ReactNode } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import { ToastProvider } from "./ui";
 import { TopLoader } from "./top-loader";
-import { Preloader } from "./preloader";
-import { ResourcePreloader } from "./resource-preloader";
 import { AnimationProvider } from "./animation-provider";
 import type { AnimationSettings } from "@/lib/animation-config";
 
@@ -20,8 +18,6 @@ export function Providers({
     <I18nProvider>
       <AnimationProvider initialSettings={animationSettings}>
         <ToastProvider>
-          <Preloader />
-          <ResourcePreloader />
           <Suspense fallback={null}>
             <TopLoader />
           </Suspense>
