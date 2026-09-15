@@ -651,7 +651,7 @@ export default function AdminPdfLibraryPage() {
         >
           <div className="space-y-4">
             <p className="text-sm text-slate-700 dark:text-slate-300">
-              আপনি কি নিশ্চিত যে <strong>"{deletePdf.title}"</strong> ফাইলটি মুছে ফেলতে চান?
+              আপনি কি নিশ্চিত যে <strong>&quot;{deletePdf.title}&quot;</strong> ফাইলটি মুছে ফেলতে চান?
             </p>
             {deletePdf.usageCount > 0 && (
               <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-xl text-xs text-amber-800 dark:text-amber-200">
